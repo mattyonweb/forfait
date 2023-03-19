@@ -1,7 +1,10 @@
 from unittest import TestCase
 from typing import *
 
+from forfait.my_exceptions import ZException
 from forfait.ztypes import *
+from forfait.ztypes.context import Context
+from forfait.ztypes.ztypes import ZTFunction, ZTBase, ZTGeneric, type_of_application
 
 
 class TestFunctionApplication_nopoly(TestCase):

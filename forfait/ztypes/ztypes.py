@@ -2,9 +2,7 @@ from abc import abstractmethod
 from enum import Enum
 from typing import *
 
-from forfait.data_structures.graph import Graph
 from forfait.my_exceptions import ZException
-
 
 class UnificationError(ZException):
     def __init__(self, t1: "ZType", t2: "ZType", ctx: "Context", *args: object) -> None:
@@ -13,6 +11,7 @@ class UnificationError(ZException):
             *args[1:]
         )
 
+##################################################
 
 class ZType:
     @abstractmethod
@@ -52,6 +51,7 @@ class ZTBase(ZType, Enum):
     def __str__(self):
         return self.name
 
+##################################################
 
 class ZTGeneric(ZType):
     def __init__(self, human_name: str):
@@ -66,7 +66,7 @@ class ZTGeneric(ZType):
     def __str__(self):
         return f"'{self.human_name}"
 
-
+##################################################
 
 class ZTFunction(ZType):
     def __init__(self, left: List[ZType], right: List[ZType]):
@@ -113,69 +113,9 @@ class ZTFunction(ZType):
         stack_right = " ".join([str(s) for s in self.right]).strip()
         return f"({stack_left} -> {stack_right})"
 
-"""
-swap dup +1u8 drop
-
-(A B -> B A)  (X -> X X)  (u8 -> u8)  (C -> )
-
-Idee:
-- nel ctx creare una hashmap  { GenericTypeVar ==> Optional[ZType] } dove salvare i tipi concreti
-- In una prima fase fai unification due a due, e riempi la hasmap
-- In una seconda fase, rivisiti l'AST applicando le sostituzioni descritte nella hasmap
-"""
-
-class Context:
-    def __init__(self):
-        self.generic_subs: Dict[ZTGeneric, ZType] = dict()
-        self.builtin_types: Dict[str, ZTFunction] = dict()
-        self.user_types: Dict[str, ZTFunction] = dict()
-
-    def add_generic_sub(self, generic_type: ZTGeneric, new_type: ZType):
-        self.generic_subs[generic_type] = new_type
-
-    def add_userfunction_type(self, funcname: str, t: ZTFunction):
-        self.user_types[funcname] = t
-
-    def __find_generics_inside(self, t: ZType) -> Set[ZTGeneric]:
-        generics_inside = set()
-        t.find_generics_inside(generics_inside)
-        return generics_inside
-
-    def ordered_subs(self) -> Tuple[Dict[ZTGeneric, ZType], List[ZTGeneric]]:
-        """
-        Per effettuare sostituzioni correttamente, l'ordine in cui si effettuano le riscritture
-        è importante. Per esempio, se il tipo da riscrivere fosse
-            myFoo :: 'a -> 'x
-        e il ctx fosse
-            'a ~~> ('x -> u8)   [1]
-            'x ~~> u16          [2]
-        sarebbe sbagliato fare la riscrittura di [2] prima di [1]; otterresti:
-            myFoo :: 'a -> u16   e quindi   myFoo :: ('x -> u8) -> u16
-        invece del desiderato
-            myFoo :: (u16 -> u8) -> u16
-
-        Bisogna quindi analizzare il grafo delle dipendenze fra riscritture. Nel caso sopra il grafo era
-            'a  ~~~richiede~~~>  'x
-        e semplicemente applichi le riscritture visitando il grado in pre-order (applichi prima
-        riscrittura su 'a poi quella su 'x)
-
-        In caso di cicli nel grafo hai un OCCUR FAIL
-        """
-        dependency_graph = Graph()
-
-        for generic, sub_type in self.generic_subs.items():
-            dependency_graph.add_node(generic)
-
-            for neigh in self.__find_generics_inside(sub_type):
-                dependency_graph.add_edge(generic, neigh)
-
-        return self.generic_subs, dependency_graph.ordered_visit()
-
-
-
 #########################################
 
-def type_of_application(t1: ZTFunction, t2: ZTFunction, ctx: Context) -> ZTFunction:
+def type_of_application(t1: ZTFunction, t2: ZTFunction, ctx: "Context") -> ZTFunction:
     """
     Returns the type
     """
@@ -202,6 +142,7 @@ def type_of_application(t1: ZTFunction, t2: ZTFunction, ctx: Context) -> ZTFunct
             tl.unify(tr, ctx)
         candidate = ZTFunction(ll, rr)
 
+    # performs ordered rewriting of `Generic`s in an order given by the dependency graph
     subs, order = ctx.ordered_subs()
     for k in order:
         if k not in subs:  # HACK: TODO: da ripensare eh

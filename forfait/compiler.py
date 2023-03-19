@@ -8,5 +8,3 @@ class Compiler:
     def compile_source_code(self, source: str):
         untyped_ast = Parser().parse(source)
         typed_ast   = Typechecker().type_ast(untyped_ast)
-
-        porcodio = "ok"
