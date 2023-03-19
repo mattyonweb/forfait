@@ -11,6 +11,14 @@ class Context:
         self.builtin_types: Dict[str, ZTFunction] = dict()
         self.user_types: Dict[str, ZTFunction] = dict()
 
+    def get_builtin_type(self, funcname):
+        import copy
+        return copy.deepcopy(self.builtin_types[funcname])
+
+    def get_userdefined_type(self, funcname):
+        import copy
+        return copy.deepcopy(self.user_types[funcname])
+
     def add_generic_sub(self, generic_type: ZTGeneric, new_type: ZType):
         self.generic_subs[generic_type] = new_type
 
@@ -52,7 +60,14 @@ class Context:
 
         return self.generic_subs, dependency_graph.ordered_visit()
 
+
+
+
 ##################################################
+
+def get_stdlib():
+    import copy
+    return copy.deepcopy(STDLIB)
 
 STDLIB = Context()
 
@@ -74,21 +89,59 @@ B = ZTGeneric("B")
 over = ZTFunction([A, B], [A, B, A])
 STDLIB.builtin_types["over"] = over
 
+
+
+inc_8bit = ZTFunction([ZTBase.U8], [ZTBase.U8])
+STDLIB.builtin_types["inc-8bit"] = inc_8bit
+
+dec_8bit = ZTFunction([ZTBase.U8], [ZTBase.U8])
+STDLIB.builtin_types["dec-8bit"] = dec_8bit
+
+inc_16bit = ZTFunction([ZTBase.U16], [ZTBase.U16])
+STDLIB.builtin_types["inc-16bit"] = inc_16bit
+
+dec_16bit = ZTFunction([ZTBase.U16], [ZTBase.U16])
+STDLIB.builtin_types["dec-16bit"] = dec_16bit
+
+# control flow
 T = ZTGeneric("T")
 if_ = ZTFunction([ZTBase.BOOL, T, T], [T])
 STDLIB.builtin_types["if"] = if_
 
-inc_8bit = ZTFunction([ZTBase.U8], [ZTBase.U8])
-STDLIB.builtin_types["inc_8bit"] = inc_8bit
+# loops
+indexed_iter_8bit = ZTFunction([ZTBase.U8, ZTBase.U8, ZTFunction([ZTBase.U8], [])], [])
+STDLIB.builtin_types["indexed-iter"] = indexed_iter_8bit
 
-dec_8bit = ZTFunction([ZTBase.U8], [ZTBase.U8])
-STDLIB.builtin_types["dec_8bit"] = dec_8bit
+# while (fa schifo)
+while_loop = ZTFunction([ZTFunction([], [ZTBase.BOOL])], [])
+STDLIB.builtin_types["while"] = while_loop
 
-inc_16bit = ZTFunction([ZTBase.U16], [ZTBase.U16])
-STDLIB.builtin_types["inc_16bit"] = inc_16bit
-
-dec_16bit = ZTFunction([ZTBase.U16], [ZTBase.U16])
-STDLIB.builtin_types["dec_16bit"] = dec_16bit
-
-add_8bit = ZTFunction([ZTBase.U8, ZTBase.U8], [ZTBase.U16])
+# 8bit arithmetic operations
+add_8bit = ZTFunction([ZTBase.U8, ZTBase.U8], [ZTBase.U8])
 STDLIB.builtin_types["+u8"] = add_8bit
+sub_8bit = ZTFunction([ZTBase.U8, ZTBase.U8], [ZTBase.U8])
+STDLIB.builtin_types["-u8"] = sub_8bit
+mult_8bit = ZTFunction([ZTBase.U8, ZTBase.U8], [ZTBase.U8])
+STDLIB.builtin_types["*u8"] = mult_8bit
+div_8bit = ZTFunction([ZTBase.U8, ZTBase.U8], [ZTBase.U8])
+STDLIB.builtin_types["/u8"] = div_8bit
+
+# comparisons
+bool_arithmetic_binop_8bit = ZTFunction([ZTBase.U8, ZTBase.U8], [ZTBase.BOOL])
+STDLIB.builtin_types[">u8"] = bool_arithmetic_binop_8bit
+STDLIB.builtin_types["<u8"] = bool_arithmetic_binop_8bit
+STDLIB.builtin_types[">=u8"] = bool_arithmetic_binop_8bit
+STDLIB.builtin_types["<=u8"] = bool_arithmetic_binop_8bit
+STDLIB.builtin_types["==u8"] = bool_arithmetic_binop_8bit
+STDLIB.builtin_types["!=u8"] = bool_arithmetic_binop_8bit
+
+# converters
+STDLIB.builtin_types["u16"] = ZTFunction([ZTBase.U8], [ZTBase.U16])
+
+# store-to-memory
+T = ZTGeneric("T")
+store = ZTFunction([T, ZTBase.U16], [])
+STDLIB.builtin_types["store-at"] = store
+
+# eval quotation
+STDLIB.builtin_types["eval"] = ZTFunction([ZTBase.U8], [ZTBase.U16])

@@ -39,6 +39,16 @@ class TestFunctionApplication_nopoly(TestCase):
         f2 = ZTFunction([ZTBase.U16, ZTBase.S8], [ZTBase.BOOL])
         self.assert_type(f1, f2, "(U8 -> BOOL)")
 
+    def test_two_consecutive_numbers(self):
+        f1 = ZTFunction([], [ZTBase.U8])
+        f2 = ZTFunction([], [ZTBase.U8])
+        self.assert_type(f1, f2, "( -> U8 U8)")
+
+    def test_two_consecutive_numbers2(self):
+        f1 = ZTFunction([], [ZTBase.U8])
+        f2 = ZTFunction([], [ZTBase.U8, ZTBase.U16])
+        self.assert_type(f1, f2, "( -> U8 U8 U16)")
+
     def test_fail(self):
         f1 = ZTFunction([ZTBase.U8], [ZTBase.U16])
         f2 = ZTFunction([ZTBase.S8], [ZTBase.BOOL])
@@ -84,3 +94,6 @@ class TestFunctionApplication_polymorphism(TestCase):
                           [A, B])
         f2 = ZTFunction([ZTBase.U16, ZTBase.BOOL], [ZTBase.S8])
         self.assert_type(f1, f2, "((U16 -> U8) BOOL U16 -> S8)")
+
+
+#################################################################

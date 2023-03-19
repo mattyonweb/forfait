@@ -4,6 +4,9 @@ class DependencyGraphException(Exception):
     pass
 
 class Graph:
+    """
+    Needed to check for put an order on rewritings of types.
+    """
     def __init__(self):
         self.outer_edges = dict()  # i vicini in uscita
         self.inner_edges = dict()  # i vicini entranti
@@ -42,9 +45,11 @@ class Graph:
             self.ciclicity_check_single_node(neigh, path + [neigh])
 
 
-
-
     def ordered_visit(self) -> List[Any]:
+        """
+        :return: Ordered list of nodes to visit.
+        """
+
         # Se non ho nodi non ho niente da visitare
         if len(self.nodes) == 0:
             return []

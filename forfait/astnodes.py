@@ -34,8 +34,8 @@ class Quote(Funcall):
     def __init__(self, body: AstNode):
         self.body = body
 
-    def typeof(self, _: Context) -> ZTFunction:
-        return ZTFunction([], [self.type])
+    def typeof(self, ctx: Context) -> ZTFunction:
+        return ZTFunction([], [self.body.typeof(ctx)])
 
     def typecheck(self, ctx: Context):
         self.body.typecheck(ctx)
@@ -48,7 +48,7 @@ class Quote(Funcall):
 class Number(Funcall):
     def __init__(self, n: int, t: ZTBase):
         self.n = n
-        self.t = ZTFunction([], t)
+        self.t = ZTFunction([], [t])
 
     def typeof(self, _: Context) -> ZTFunction:
         return self.t
@@ -64,6 +64,10 @@ class Number(Funcall):
 class Sequence(AstNode):
     def __init__(self, funcs: List[Funcall]):
         self.funcs = funcs
+
+    def typecheck(self, ctx: Context):
+        for x in self.funcs:
+            x.typecheck(ctx)
 
     def typeof(self, ctx: Context) -> ZType:
         if len(self.funcs) == 0:

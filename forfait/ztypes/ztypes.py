@@ -129,13 +129,13 @@ def type_of_application(t1: ZTFunction, t2: ZTFunction, ctx: "Context") -> ZTFun
         common_seq_len = len(rl)
         for tl, tr in zip(lr[-common_seq_len:], rl):
             tl.unify(tr, ctx)
-        candidate = ZTFunction(ll, lr[:-common_seq_len] + rr)
+        candidate = ZTFunction(ll, (lr if common_seq_len == 0 else lr[:-common_seq_len]) + rr)
 
     elif len(lr) < len(rl):
         common_seq_len = len(lr)
         for tl, tr in zip(lr, rl[-common_seq_len:]):
             tl.unify(tr, ctx)
-        candidate = ZTFunction(rl[:-common_seq_len] + ll, rr)
+        candidate = ZTFunction((rl if common_seq_len == 0 else rl[:-common_seq_len]) + ll, rr)
 
     else:
         for tl, tr in zip(lr, rl):
