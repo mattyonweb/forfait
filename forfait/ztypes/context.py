@@ -20,7 +20,15 @@ class Context:
         return copy.deepcopy(self.user_types[funcname])
 
     def add_generic_sub(self, generic_type: ZTGeneric, new_type: ZType):
-        self.generic_subs[generic_type] = new_type
+        if generic_type in self.generic_subs:
+            old = self.generic_subs[generic_type]
+
+            temp_ctx = Context()
+            old.unify(new_type, temp_ctx)
+            for key, value in temp_ctx.generic_subs:
+                self.sub_in_subs(key, value)
+        else:
+            self.generic_subs[generic_type] = new_type
 
     def add_userfunction_type(self, funcname: str, t: ZTFunction):
         self.user_types[funcname] = t
@@ -29,6 +37,10 @@ class Context:
         generics_inside = set()
         t.find_generics_inside(generics_inside)
         return generics_inside
+
+    def sub_in_subs(self, generic: ZTGeneric, new: ZType):
+        for key, value in self.generic_subs.items():
+            self.generic_subs[key] = value.substitute_generic(generic, new)
 
     def ordered_subs(self) -> Tuple[Dict[ZTGeneric, ZType], List[ZTGeneric]]:
         """

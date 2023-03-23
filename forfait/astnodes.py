@@ -3,7 +3,7 @@ from typing import *
 
 from forfait.my_exceptions import ZException
 from forfait.ztypes.context import Context
-from forfait.ztypes.ztypes import ZType, type_of_application, ZTFunction
+from forfait.ztypes.ztypes import ZType, type_of_application_rowpoly, ZTFunction
 from forfait.ztypes.ztypes import ZTBase
 
 
@@ -75,13 +75,13 @@ class Sequence(AstNode):
         if len(self.funcs) == 1:
             return self.funcs[0].typeof(ctx)
 
-        last_type = type_of_application(
+        last_type = type_of_application_rowpoly(
             self.funcs[0].typeof(ctx),
             self.funcs[1].typeof(ctx),
             ctx
         )
         for funcall in self.funcs[2:]:
-            last_type = type_of_application(
+            last_type = type_of_application_rowpoly(
                 last_type, funcall.typeof(ctx), ctx
             )
         return last_type
