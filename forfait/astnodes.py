@@ -3,7 +3,7 @@ from typing import *
 
 from forfait.my_exceptions import ZException
 from forfait.ztypes.context import Context
-from forfait.ztypes.ztypes import ZType, type_of_application_rowpoly, ZTFunction
+from forfait.ztypes.ztypes import ZType, type_of_application_rowpoly, ZTFunction, ZTFuncHelper, ZTRowGeneric
 from forfait.ztypes.ztypes import ZTBase
 
 
@@ -33,9 +33,11 @@ class Funcall(AstNode):
 class Quote(Funcall):
     def __init__(self, body: AstNode):
         self.body = body
+        self.row_generic = ZTRowGeneric("NQ")
 
     def typeof(self, ctx: Context) -> ZTFunction:
-        return ZTFunction([], [self.body.typeof(ctx)])
+        return ZTFuncHelper(self.row_generic, [], self.row_generic, [self.body.typeof(ctx)])
+        # return ZTFunction([], [self.body.typeof(ctx)])
 
     def typecheck(self, ctx: Context):
         self.body.typecheck(ctx)
@@ -48,7 +50,8 @@ class Quote(Funcall):
 class Number(Funcall):
     def __init__(self, n: int, t: ZTBase):
         self.n = n
-        self.t = ZTFunction([], [t])
+        self.row_generic = ZTRowGeneric("S")
+        self.t = ZTFuncHelper(self.row_generic, [], self.row_generic, [t])
 
     def typeof(self, _: Context) -> ZTFunction:
         return self.t
@@ -73,17 +76,22 @@ class Sequence(AstNode):
         if len(self.funcs) == 0:
             raise ZException("Empty sequence of funcalls has no type")
         if len(self.funcs) == 1:
-            return self.funcs[0].typeof(ctx)
+            out = self.funcs[0].typeof(ctx)
+            return out
 
         last_type = type_of_application_rowpoly(
             self.funcs[0].typeof(ctx),
             self.funcs[1].typeof(ctx),
             ctx
         )
+
         for funcall in self.funcs[2:]:
+            ctx.clear_generic_subs()
             last_type = type_of_application_rowpoly(
                 last_type, funcall.typeof(ctx), ctx
             )
+
+        ctx.clear_generic_subs()
         return last_type
 
     def __str__(self):

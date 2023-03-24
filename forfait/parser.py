@@ -2,9 +2,12 @@ from typing import List
 
 from forfait.astnodes import AstNode, Funcall, Funcdef, Sequence, Quote, Number
 from forfait.my_exceptions import ZException
-from forfait.ztypes.context import Context, STDLIB
+from forfait.stdlibs.basic_stdlib import STDLIB
+from forfait.ztypes.context import Context
 from forfait.ztypes.ztypes import ZTBase
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 class ZParserError(ZException):
     pass
@@ -155,7 +158,11 @@ if __name__ == "__main__":
       [| dup u16 store-at |]  indexed-iter 
     """
     for x in Parser(STDLIB).parse(s):
-        print(f"{type(x)}\t\t~~>\t {x}", end="\n")
+        print(f"{type(x)}\t\t~~>\t {x}\t\t{x.typeof(STDLIB)}", end="\n")
 
     print(x.typeof(STDLIB))
 
+    def sequence_from_str(s):
+        return Parser(STDLIB).parse(s)
+
+    print(sequence_from_str("0 5 10")[0].typeof(STDLIB))

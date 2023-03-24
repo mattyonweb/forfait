@@ -56,8 +56,12 @@ class ZTBase(ZType, Enum):
 ##################################################
 
 class ZTGeneric(ZType):
+    counter = 0
+
     def __init__(self, human_name: str):
         self.human_name = human_name
+        self.counter = ZTGeneric.counter
+        ZTGeneric.counter += 1
 
     def unify(self, other: ZType, ctx: "Context"):
         log.debug(f"New unify equality: {self} =?= {other}")
@@ -72,8 +76,12 @@ class ZTGeneric(ZType):
 ##################################################
 
 class ZTRowGeneric(ZTGeneric):
+    counter = 0
+
     def __init__(self, human_name: str):
         self.human_name = human_name
+        self.counter = ZTRowGeneric.counter
+        ZTRowGeneric.counter += 1
 
     def unify(self, other: ZType, ctx: "Context"):
         log.debug(f"New unify equality: {self} =?= {other}")
@@ -83,6 +91,7 @@ class ZTRowGeneric(ZTGeneric):
         s.add(self)
 
     def __str__(self):
+        # return f"''{self.human_name}_{self.counter}"
         return f"''{self.human_name}"
 
 ##################################################
@@ -101,10 +110,21 @@ class ZTRow(ZType):
 
         if isinstance(other, ZTRow):
             # TODO: ma non va bene... e se lo stack contiene un GenericRow? Che si fa?!
-            assert len(self.types) == len(other.types)
-            for x, y in zip(self.types, other.types):
-                x.unify(y, ctx)
-                
+            # assert len(self.types) == len(other.types)
+            # for x, y in zip(self.types, other.types):
+            #     x.unify(y, ctx)
+
+            self_len, other_len = len(self.types), len(other.types)
+
+            for i in range(min(self_len, other_len)):
+                self.types[-(i + 1)].unify(self.types[-(i + 1)], ctx)
+
+            if self_len <= other_len:
+                self.row_var.unify(ZTRow(other.row_var, other.types[:other_len - self_len]), ctx)
+            else:
+                other.row_var.unify(ZTRow(self.row_var, self.types[:self_len - other_len]), ctx)
+
+
     def find_generics_inside(self, s: Set["ZTGeneric"]):
         for t in self.types:
             t.find_generics_inside(s)
@@ -126,17 +146,16 @@ class ZTRow(ZType):
         return self
     
     def __str__(self):
-        # return f"_[" + str(self.row_var) + " " + " ".join([str(t) for t in self.types]).strip() + " ]_"
         return (str(self.row_var).strip() + " " + " ".join([str(t) for t in self.types]).strip()).strip()
 
 ##########################################################
 
-def ztfunc(left, right):
-    import random
-    genrowvar = ZTRowGeneric("T" + str(random.randint(0, 9999) % 1000))
-    return ZTFunction(ZTRow(genrowvar, left), ZTRow(genrowvar, right))
-def ztfuncexp(genrowvar1, left, genrowvar2, right):
+# helper functions
+def ZTFunc(stackgeneric, left, right):
+    return ZTFunction(ZTRow(stackgeneric, left), ZTRow(stackgeneric, right))
+def ZTFuncHelper(genrowvar1, left, genrowvar2, right):
     return ZTFunction(ZTRow(genrowvar1, left), ZTRow(genrowvar2, right))
+
 
 class ZTFunction(ZType):
     def __init__(self, left: ZTRow, right: ZTRow):
@@ -166,7 +185,7 @@ class ZTFunction(ZType):
         self_len, other_len = len(self.left.types), len(other.left.types)
 
         for i in range(min(self_len, other_len)):
-            self.left.types[-i].unify(self.right.types[-i], ctx)
+            self.left.types[-(i+1)].unify(other.left.types[-(i+1)], ctx)
 
         if self_len <= other_len:
             self.left.row_var.unify(ZTRow(other.left.row_var, other.left.types[:other_len - self_len]), ctx)
@@ -178,7 +197,7 @@ class ZTFunction(ZType):
         self_len, other_len = len(self.right.types), len(other.right.types)
 
         for i in range(min(self_len, other_len)):
-            self.right.types[-i].unify(self.right.types[-i], ctx)
+            self.right.types[-(i+1)].unify(other.right.types[-(i+1)], ctx)
 
         if self_len <= other_len:
             self.right.row_var.unify(ZTRow(other.right.row_var, other.right.types[:other_len - self_len]), ctx)
@@ -246,6 +265,8 @@ def takelasts(l, n) -> list:
 def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") -> ZTFunction:
     assert isinstance(t1, ZTFunction)  # assumi che il primo elemento di ogni lista sia un TRowGeneric
     assert isinstance(t2, ZTFunction)
+
+    ctx.clear_generic_subs()
 
     ll, lr = t1.left, t1.right
     rl, rr = t2.left, t2.right

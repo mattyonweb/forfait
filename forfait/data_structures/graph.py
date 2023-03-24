@@ -41,7 +41,10 @@ class Graph:
 
         for neigh in self.outer_edges[node]:
             if neigh in path:
-                raise DependencyGraphException(f"Found ciclicity: {path}")
+                raise DependencyGraphException(
+                    f"Found ciclicity: " + " ==> ".join([str(x) for x in path]) + " ==> " + str(neigh) +
+                    f"\nGraph is:\n{self}"
+                )
             self.ciclicity_check_single_node(neigh, path + [neigh])
 
 
@@ -87,8 +90,16 @@ class Graph:
 
         return order
 
+    def __str_edges(self, edges: dict):
+        s = ""
+        for k,v in edges.items():
+            s += f"{k} ==> [" + ", ".join([str(x) for x in v]) + "]\n"
+        return s
+
     def __str__(self):
-        return f"Nodes:\n{[str(s) for s in self.nodes]}\n\nInner edges:\n{self.inner_edges}\n\nOuter edges:\n{self.outer_edges}"
+        return (f"Nodes:\n{[str(s) for s in self.nodes]}\n\n" +
+                f"Inner edges:\n{self.__str_edges(self.inner_edges)}\n\n" +
+                f"Outer edges:\n{self.__str_edges(self.outer_edges)}")
 
 
 if __name__ == '__main__':
