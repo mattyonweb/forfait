@@ -32,13 +32,15 @@ At the moment, the type system is only roughly sketched.
 
 There are two types of generics: classic generics and "Row" (or stack) generics; the latter allow to remain generic over a row (read: an ordered list) of types, instead than on only one type. 
 
-Row generics are necessary if we want to correctly type `eval`-like functions. First, let's see the "type signature" of a quotation.
+Row generics are necessary if we want to correctly type `eval`-like functions. 
+
+To see an example of this, let's first look at the "type signature" of a quotation.
 
 Let's take the builtin function `drop` (the following syntax is only for sake of clarity, it is not the actual syntax of the language):
 
 `drop :: (''S 'T -> ''S)`
 
-The signature means: drop accepts whatever stack `''S` which has an object with generic type `'T` on top. Here `''S` is the row-generic variable, `'T` is a "classic" generic instead.
+The signature means: drop accepts whatever stack `''S` on top an object with generic type `'T`. Here `''S` is the row-generic variable, `'T` is a "classic" generic instead.
 
 `[| drop |] :: (''R -> ''R (''S 'T -> ''S))`
 

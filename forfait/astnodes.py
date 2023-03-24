@@ -15,6 +15,9 @@ class AstNode:
     def typecheck(self, ctx: Context):
         return
 
+    def prettyprint(self, indent=0):
+        pass
+
 ##################################################
 
 class Funcall(AstNode):
@@ -27,6 +30,10 @@ class Funcall(AstNode):
 
     def __str__(self):
         return self.funcname
+
+    def prettyprint(self, indent=0):
+        print(f"{' '*indent}Funcall {self.funcname} :: {self.type}")
+
 
 ##################################################
 
@@ -45,6 +52,10 @@ class Quote(Funcall):
     def __str__(self):
         return f"[| " + str(self.body).strip() + " |]"
 
+    def prettyprint(self, indent=0):
+        print(f"{' '*indent}Quote: [|")
+        self.body.prettyprint(indent+2)
+
 ##################################################
 
 class Number(Funcall):
@@ -61,6 +72,9 @@ class Number(Funcall):
 
     def __str__(self):
         return f"{self.n}"
+
+    def prettyprint(self, indent=0):
+        print(f"{' '*indent}Number: {self.n}")
 
 ##################################################
 
@@ -97,6 +111,10 @@ class Sequence(AstNode):
     def __str__(self):
         return " ".join([str(f) for f in self.funcs]).strip()
 
+    def prettyprint(self, indent=0):
+        print(f"{' '*indent}Sequence:")
+        for x in self.funcs:
+            x.prettyprint(indent+2)
 ##################################################
 
 class Funcdef(AstNode):
@@ -109,4 +127,8 @@ class Funcdef(AstNode):
 
     def __str__(self):
         return f": {self.funcname} {self.funcbody} ;"
+
+    def prettyprint(self, indent=0):
+        print(f"{' '*indent}Funcdef: {self.funcname}")
+        self.funcbody.prettyprint(indent+2)
 

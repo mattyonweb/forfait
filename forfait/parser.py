@@ -102,7 +102,8 @@ class Parser:
         assert len(ast) == 1 and isinstance(ast[0], Sequence), " ".join([str(s) for s in ast])
         # assert all(isinstance(n, Funcall) for n in ast), " ".join([str(s) for s in ast])
 
-        funcdef_obj = Funcdef(funcname, Sequence(ast))
+        # funcdef_obj = Funcdef(funcname, Sequence(ast))
+        funcdef_obj = Funcdef(funcname, ast[0])
         self.ctx.user_types[funcname] = funcdef_obj.typeof(self.ctx)
 
         return funcdef_obj
@@ -128,7 +129,13 @@ class Parser:
 
         tokens.pop(0)  # removes |]
 
-        return Quote(Sequence(self.parse_tokens(quote_block)))
+        # avoid Sequence { Sequence { ... } } problem
+        parsed_body = self.compress_ast(self.parse_tokens(quote_block))
+        if len(parsed_body) == 1 and isinstance(parsed_body[0], Sequence):
+            return Quote(parsed_body[0])
+        else:
+            return Quote(Sequence(self.parse_tokens(quote_block)))
+        # return Quote(self.parse_tokens(quote_block)[])
 
 
     def compress_ast(self, l: List[AstNode]):
@@ -150,15 +157,15 @@ class Parser:
             out.append(Sequence(temp))
         return out
 
-
 if __name__ == "__main__":
     s = """
     : square dup *u8 ;
     0 5 
-      [| dup u16 store-at |]  indexed-iter 
+      [| dup [| 1 |] eval drop u16 store-at |]  indexed-iter 
     """
     for x in Parser(STDLIB).parse(s):
-        print(f"{type(x)}\t\t~~>\t {x}\t\t{x.typeof(STDLIB)}", end="\n")
+        print(x.prettyprint())
+        # print(f"{type(x)}\t\t~~>\t {x}\t\t{x.typeof(STDLIB)}", end="\n")
 
     print(x.typeof(STDLIB))
 
