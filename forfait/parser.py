@@ -1,6 +1,6 @@
 from typing import List
 
-from forfait.astnodes import AstNode, Funcall, Funcdef, Sequence, Quote, Number
+from forfait.astnodes import AstNode, Funcall, Funcdef, Sequence, Quote, Number, Boolean
 from forfait.my_exceptions import ZException
 from forfait.stdlibs.basic_stdlib import STDLIB
 from forfait.ztypes.context import Context
@@ -74,6 +74,8 @@ class Parser:
             return Funcall(funcname, self.ctx.get_builtin_type(funcname))
         if funcname in self.ctx.user_types:
             return Funcall(funcname, self.ctx.get_userdefined_type(funcname))
+        if funcname in ["true", "false"]:
+            return Boolean(funcname == "true")
 
         try:
             return Number(int(funcname), ZTBase.U8)  # TODO: type of integers
@@ -135,7 +137,6 @@ class Parser:
             return Quote(parsed_body[0])
         else:
             return Quote(Sequence(self.parse_tokens(quote_block)))
-        # return Quote(self.parse_tokens(quote_block)[])
 
 
     def compress_ast(self, l: List[AstNode]):

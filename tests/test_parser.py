@@ -16,6 +16,8 @@ class TestParser(TestCase):
             str(sequence.typeof(ctx)),
         )
 
+
+
     def test_1(self):
         self.parse_simple_sequence(
             "1 3 5",

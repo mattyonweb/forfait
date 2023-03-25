@@ -41,6 +41,7 @@ class Quote(Funcall):
     def __init__(self, body: AstNode):
         self.body = body
         self.row_generic = ZTRowGeneric("NQ")
+        self.funcname = None
 
     def typeof(self, ctx: Context) -> ZTFunction:
         return ZTFuncHelper(self.row_generic, [], self.row_generic, [self.body.typeof(ctx)])
@@ -56,6 +57,7 @@ class Quote(Funcall):
         print(f"{' '*indent}Quote: [|")
         self.body.prettyprint(indent+2)
 
+
 ##################################################
 
 class Number(Funcall):
@@ -63,6 +65,7 @@ class Number(Funcall):
         self.n = n
         self.row_generic = ZTRowGeneric("S")
         self.t = ZTFuncHelper(self.row_generic, [], self.row_generic, [t])
+        super().__init__(str(n), self.t)
 
     def typeof(self, _: Context) -> ZTFunction:
         return self.t
@@ -75,6 +78,27 @@ class Number(Funcall):
 
     def prettyprint(self, indent=0):
         print(f"{' '*indent}Number: {self.n}")
+
+##################################################
+
+class Boolean(Funcall):
+    def __init__(self, b: bool):
+        self.b = b
+        self.row_generic = ZTRowGeneric("S")
+        self.t = ZTFuncHelper(self.row_generic, [], self.row_generic, [ZTBase.BOOL])
+        super().__init__(str("true" if self.b else "false"), self.t)
+
+    def typeof(self, _: Context) -> ZTFunction:
+        return self.t
+
+    def typecheck(self, ctx: Context):
+        pass
+
+    def __str__(self):
+        return f"{self.b}"
+
+    def prettyprint(self, indent=0):
+        print(f"{' '*indent}Boolean: {self.b}")
 
 ##################################################
 

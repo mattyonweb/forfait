@@ -1,6 +1,6 @@
 import traceback
 
-from forfait.astnodes import AstNode, Quote, Number, Funcall, Funcdef, Sequence
+from forfait.astnodes import AstNode, Quote, Number, Funcall, Funcdef, Sequence, Boolean
 from forfait.parser import Parser, ZUnknownFunction
 from forfait.stdlibs.basic_stdlib import STDLIB
 from forfait.ztypes.context import Context
@@ -29,6 +29,8 @@ class Interpreter:
                 self.eval_astnode(x)
         elif isinstance(node, Number):
             self.stack.append(node.n)
+        elif isinstance(node, Boolean):
+            self.stack.append(node.b)
         elif isinstance(node, Quote):
             self.stack.append(lambda: self.eval_astnode(node.body))
         elif isinstance(node, Funcdef):
