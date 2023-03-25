@@ -309,39 +309,3 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
             continue
         candidate.substitute_generic(k, subs[k])
     return candidate
-
-
-# def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") -> ZTFunction:
-#     """
-#     Returns the type
-#     """
-#     assert isinstance(t1, ZTFunction)
-#     assert isinstance(t2, ZTFunction)
-#
-#     ll, lr = t1.left, t1.right
-#     rl, rr = t2.left, t2.right
-#
-#     if len(lr) > len(rl):
-#         common_seq_len = len(rl)
-#         for tl, tr in zip(lr[-common_seq_len:], rl):
-#             tl.unify(tr, ctx)
-#         candidate = ZTFunction(ll, (lr if common_seq_len == 0 else lr[:-common_seq_len]) + rr)
-#
-#     elif len(lr) < len(rl):
-#         common_seq_len = len(lr)
-#         for tl, tr in zip(lr, rl[-common_seq_len:]):
-#             tl.unify(tr, ctx)
-#         candidate = ZTFunction((rl if common_seq_len == 0 else rl[:-common_seq_len]) + ll, rr)
-#
-#     else:
-#         for tl, tr in zip(lr, rl):
-#             tl.unify(tr, ctx)
-#         candidate = ZTFunction(ll, rr)
-#
-#     # performs ordered rewriting of `Generic`s in an order given by the dependency graph
-#     subs, order = ctx.ordered_subs()
-#     for k in order:
-#         if k not in subs:  # HACK: TODO: da ripensare eh
-#             continue
-#         candidate.substitute_generic(k, subs[k])
-#     return candidate

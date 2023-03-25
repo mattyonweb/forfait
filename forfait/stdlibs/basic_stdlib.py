@@ -64,11 +64,11 @@ R = ZTRowGeneric("R")
 indexed_iter_8bit = ZTFunc(S, [ZTBase.U8, ZTBase.U8, ZTFunc(R, [ZTBase.U8], [])], [])
 STDLIB.builtin_types["indexed-iter"] = indexed_iter_8bit
 
-# while (fa schifo)
-S = ZTRowGeneric("S")
-R = ZTRowGeneric("R")
-while_loop = ZTFunc(S, [ZTFunc(R, [], [ZTBase.BOOL])], [])
-STDLIB.builtin_types["while"] = while_loop
+# # while (fa schifo)
+# S = ZTRowGeneric("S")
+# R = ZTRowGeneric("R")
+# while_loop = ZTFunc(S, [ZTFunc(R, [], [ZTBase.BOOL])], [])
+# STDLIB.builtin_types["while"] = while_loop
 
 # 8bit arithmetic operations
 S = ZTRowGeneric("S")
@@ -125,3 +125,27 @@ STDLIB.builtin_types["__clear"] = ZTFuncHelper(
     S, [],
     R, []
 )
+
+# while (non è il massimo)
+S = ZTRowGeneric("S")
+while_loop = ZTFunc(
+    S, [ZTFunc(S, [], [ZTBase.BOOL]),
+        ZTFunc(S, [], [])],
+    []
+)
+STDLIB.builtin_types["while"] = while_loop
+
+#rot+ e rot-
+S = ZTRowGeneric("S")
+A, B, C = ZTGeneric("A"), ZTGeneric("B"), ZTGeneric("C")
+rotplus = ZTFunc(
+    S, [A, B, C], [C, A, B]
+)
+STDLIB.builtin_types["rot+"] = rotplus
+
+S = ZTRowGeneric("S")
+A, B, C = ZTGeneric("A"), ZTGeneric("B"), ZTGeneric("C")
+rotminus = ZTFunc(
+    S, [A, B, C], [B, C, A]
+)
+STDLIB.builtin_types["rot-"] = rotminus

@@ -2,12 +2,11 @@ from typing import List
 
 from forfait.astnodes import AstNode, Funcall, Funcdef, Sequence, Quote, Number, Boolean
 from forfait.my_exceptions import ZException
-from forfait.stdlibs.basic_stdlib import STDLIB
 from forfait.ztypes.context import Context
 from forfait.ztypes.ztypes import ZTBase
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 class ZParserError(ZException):
     pass
@@ -22,8 +21,9 @@ class Parser:
     """
     Class that parses and performs typechecking on raw source code.
     """
-    def __init__(self, ctx: Context):
+    def __init__(self, ctx: Context, verbose=True):
         self.ctx = ctx
+        self.verbose = verbose
 
     def parse(self, code: str) -> List[AstNode]:
         """ Entry point for parsing. """
@@ -31,7 +31,9 @@ class Parser:
         nodes  = self.parse_tokens(tokens)
         for n in nodes:
             n.typecheck(self.ctx)
-            n.typeof(self.ctx)
+            expr_type = n.typeof(self.ctx)
+            if self.verbose:
+                print(expr_type)
         return nodes
 
     ##################################################
@@ -59,6 +61,8 @@ class Parser:
             token = tokens.pop(0)
 
             match token:
+                case "((":
+                    self.consume_comment(tokens)
                 case "[|":
                     ast.append(self.parse_quotation(tokens))
                 case ":":
@@ -88,7 +92,7 @@ class Parser:
     def parse_funcdef(self, tokens: List[str]) -> Funcdef:
         try:
             idx = tokens.index(";")  # implies: no nested functions
-        except ValueError as e:
+        except ValueError as _:
             raise ZNoEndToFuncDef(" ".join(tokens))
 
         # esaurisci il body della funzione
@@ -158,19 +162,26 @@ class Parser:
             out.append(Sequence(temp))
         return out
 
-if __name__ == "__main__":
-    s = """
-    : square dup *u8 ;
-    0 5 
-      [| dup [| 1 |] eval drop u16 store-at |]  indexed-iter 
-    """
-    for x in Parser(STDLIB).parse(s):
-        print(x.prettyprint())
-        # print(f"{type(x)}\t\t~~>\t {x}\t\t{x.typeof(STDLIB)}", end="\n")
+    def consume_comment(self, tokens: List[str]):
+        next_token = tokens.pop(0)
+        while next_token != "))":
+            next_token = tokens.pop(0)
+        return
 
-    print(x.typeof(STDLIB))
 
-    def sequence_from_str(s):
-        return Parser(STDLIB).parse(s)
-
-    print(sequence_from_str("0 5 10")[0].typeof(STDLIB))
+# if __name__ == "__main__":
+#     s = """
+#     : square dup *u8 ;
+#     0 5
+#       [| dup [| 1 |] eval drop u16 store-at |]  indexed-iter
+#     """
+#     for x in Parser(STDLIB).parse(s):
+#         print(x.prettyprint())
+#         # print(f"{type(x)}\t\t~~>\t {x}\t\t{x.typeof(STDLIB)}", end="\n")
+#
+#     print(x.typeof(STDLIB))
+#
+#     def sequence_from_str(s):
+#         return Parser(STDLIB).parse(s)
+#
+#     print(sequence_from_str("0 5 10")[0].typeof(STDLIB))

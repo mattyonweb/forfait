@@ -54,6 +54,9 @@ inverse_of_inverse2 = PeepholeOptimization(
 def compiletime_arithmetic_do(stream: List[Funcall]):
     left, right, op = stream.pop(0), stream.pop(0), stream.pop(0)
 
+    assert isinstance(left, Number)
+    assert isinstance(right, Number)
+
     match op.funcname:
         case "+u8":
             stream.insert(0, Number((left.n + right.n) % 256, ZTBase.U8))
@@ -130,7 +133,7 @@ class Optimizer:
 
     def optimize_quote(self, quote: Quote) -> Quote:
         # TODO: se quote è vuota, non ritornare niente
-        return Quote(self.optimize_astnode(quote.body))
+        return Quote(self.optimize_sequence(quote.body))
 
     def optimize_funcdef(self, fdef: Funcdef) -> Funcdef:
         return Funcdef(fdef.funcname, self.optimize_astnode(fdef.funcbody))

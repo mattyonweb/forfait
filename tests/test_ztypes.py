@@ -136,5 +136,4 @@ class TestFunctionApplication_polymorphism(TestCase):
 
         self.assert_type(double_add_quoted, eval_, "(''R U8 U8 U8 -> ''R U8)")
 
-
 #################################################################

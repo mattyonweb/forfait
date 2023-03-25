@@ -1,5 +1,5 @@
 import logging
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 from typing import *
 from typing import Dict, Set, Tuple, List
@@ -27,7 +27,7 @@ class Context:
 
     def add_generic_sub(self, generic_type: ZTGeneric, new_type: ZType):
         if generic_type == new_type:
-            breakpoint() # debug
+            return # elision of obvious equation T = T
 
         if generic_type in self.generic_subs:
             old = self.generic_subs[generic_type]

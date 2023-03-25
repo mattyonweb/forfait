@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import *
+# from typing import *
 
 from forfait.my_exceptions import ZException
 from forfait.ztypes.context import Context
@@ -38,7 +38,7 @@ class Funcall(AstNode):
 ##################################################
 
 class Quote(Funcall):
-    def __init__(self, body: AstNode):
+    def __init__(self, body: "Sequence"):
         self.body = body
         self.row_generic = ZTRowGeneric("NQ")
         self.funcname = None
@@ -103,7 +103,7 @@ class Boolean(Funcall):
 ##################################################
 
 class Sequence(AstNode):
-    def __init__(self, funcs: List[Funcall]):
+    def __init__(self, funcs: list[Funcall]):
         self.funcs = funcs
 
     def typecheck(self, ctx: Context):

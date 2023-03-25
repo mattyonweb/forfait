@@ -1,13 +1,13 @@
 from unittest import TestCase
 from typing import *
 
-from forfait.astnodes import AstNode
+from forfait.astnodes import AstNode, Funcdef
 from forfait.parser import Parser
 from forfait.stdlibs.basic_stdlib import get_stdlib
 
 
 class TestParser(TestCase):
-    def parse_simple_sequence(self, code: str, expected_type) -> AstNode:
+    def parse_simple_sequence(self, code: str, expected_type):
         ctx = get_stdlib()
         sequence = Parser(ctx).parse(code)[0]
 
@@ -16,7 +16,14 @@ class TestParser(TestCase):
             str(sequence.typeof(ctx)),
         )
 
+    def typeof_funcdef(self, code: str, expected_type):
+        ctx = get_stdlib()
+        funcdef: Funcdef = Parser(ctx).parse(code)[0]
 
+        self.assertEqual(
+            expected_type,
+            str(funcdef.typeof(ctx)),
+        )
 
     def test_1(self):
         self.parse_simple_sequence(
@@ -45,5 +52,17 @@ class TestParser(TestCase):
     def test_quotes4(self):
         self.parse_simple_sequence(
             "1 10 [| drop |] indexed-iter" ,
+            "(''S -> ''S)"
+        )
+
+    def test_quotes_while(self):
+        self.typeof_funcdef(
+            "1 1 [| dup 100 <=u8 |] [| swap over +u8 |] while swap drop" ,
+            "(''S -> ''S U8)"
+        )
+
+    def test_recursive(self):
+        self.typeof_funcdef(
+            ": foo 1 +u8 foo ;" ,
             "(''S -> ''S)"
         )

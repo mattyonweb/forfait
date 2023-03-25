@@ -1,13 +1,17 @@
 import traceback
 
 from forfait.astnodes import AstNode, Quote, Number, Funcall, Funcdef, Sequence, Boolean
+from forfait.optimizer import Optimizer, stdlib_peeps
 from forfait.parser import Parser, ZUnknownFunction
 from forfait.stdlibs.basic_stdlib import STDLIB
 from forfait.ztypes.context import Context
 
 class Interpreter:
-    def __init__(self, ctx: Context):
+    def __init__(self, ctx: Context, verbose=True):
         self.ctx = ctx
+        self.optimizer = Optimizer(self.ctx, stdlib_peeps)
+
+        self.verbose = verbose
 
         self.memory = dict()
         self.dictionary = dict()
@@ -20,7 +24,7 @@ class Interpreter:
         self.stack = list()
 
     def eval(self, s: str):
-        for node in Parser(self.ctx).parse(s):
+        for node in self.optimizer.optimize(Parser(self.ctx, verbose=True).parse(s)):
             self.eval_astnode(node)
 
     def eval_astnode(self, node: AstNode):
@@ -55,6 +59,16 @@ class Interpreter:
                 self.stack.append(x)
             case "over":
                 self.stack.append(self.stack[-2])
+            case "rot-":
+                top,snd,trd=self.stack.pop(),self.stack.pop(),self.stack.pop()
+                self.stack.append(snd)
+                self.stack.append(top)
+                self.stack.append(trd)
+            case "rot+":
+                top,snd,trd= self.stack.pop(), self.stack.pop(), self.stack.pop()
+                self.stack.append(top)
+                self.stack.append(trd)
+                self.stack.append(snd)
             case "inc-8bit":
                 self.stack.append((self.stack.pop() + 1) % 256)
             case "inc-16bit":
@@ -85,17 +99,25 @@ class Interpreter:
             case "/u8":
                 self.stack.append(((self.stack.pop() % 256) // (self.stack.pop() % 256)) % 256)
             case ">u8":
-                self.stack.append(((self.stack.pop() % 256) > (self.stack.pop() % 256)))
-            case "<u8":
                 self.stack.append(((self.stack.pop() % 256) < (self.stack.pop() % 256)))
+            case "<u8":
+                self.stack.append(((self.stack.pop() % 256) > (self.stack.pop() % 256)))
             case ">=u8":
-                self.stack.append(((self.stack.pop() % 256) >= (self.stack.pop() % 256)))
-            case "<=u8":
                 self.stack.append(((self.stack.pop() % 256) <= (self.stack.pop() % 256)))
+            case "<=u8":
+                self.stack.append(((self.stack.pop() % 256) >= (self.stack.pop() % 256)))
             case "==u8":
                 self.stack.append(((self.stack.pop() % 256) == (self.stack.pop() % 256)))
             case "!=u8":
                 self.stack.append(((self.stack.pop() % 256) != (self.stack.pop() % 256)))
+            case "while":
+                iter_func, cond_func = self.stack.pop(), self.stack.pop()
+                while True:
+                    cond_func()
+                    if self.stack.pop():
+                        iter_func()
+                    else:
+                        break
             case "u16":
                 pass
             case "store-at":
@@ -122,6 +144,18 @@ if __name__ == "__main__":
         s = input(">>> ")
         if s.strip() == "":
             continue
+
+        if len(s.strip().split(" ")) >= 2 and s.strip().split(" ")[1] == "load":
+            filename = s.strip().split(" ")[0]
+            with open(filename.replace("\"", ""), "r") as f:
+                I.eval(f.read())
+            continue
+
+        if s == ":t":
+            for funcname, functype in I.ctx.builtin_types.items():
+                print(f"{funcname} :: {functype}")
+            continue
+
         try:
             I.eval(s)
         except ZUnknownFunction as e:

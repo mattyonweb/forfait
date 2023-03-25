@@ -59,3 +59,22 @@ eval            ::        (''U (''U    -> ''V)  -> ''V)
 [| drop |] eval :: (''S 'T -> ''S)  (names may be different IRL)
            
 ```
+
+## Few examples
+
+### Fibonacci
+
+```
+: fibonacci (( n -- fact(n) ))
+  1 1
+
+    [| rot- dup 1 >=u8 |]    (( checks if n still >= 1 ))
+    [| dec-8bit rot+         (( decrements n and puts it in third position ))
+       over +u8 swap |]      (( fib(n-1) fib(n-2) -- fib(n) fib(n-1) ))
+  while
+
+  drop drop
+;
+
+8 fibonacci :s     (( will print [55] ))
+```
