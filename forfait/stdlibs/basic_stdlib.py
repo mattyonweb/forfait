@@ -1,17 +1,19 @@
-from typing import *
+## CONVENTIONS:
+##  - First TRowGeneric shall be called ''S, the second ''R, the other boh
+##  - First TGeneric shall be called 'T, second 'U, third 'V, ecc
 
 from forfait.ztypes.context import Context
 from forfait.ztypes.ztypes import *
-
 
 def get_stdlib():
     import copy
     return copy.deepcopy(STDLIB)
 
-# CONVENTIONS:
-#  - First TRowGeneric shall be called ''S, the second ''R, the other boh
-#  - First TGeneric shall be called 'T, second 'U, third 'V, ecc
+##############################################################
+
 STDLIB = Context()
+
+############## STACK MANIPULATION ##############
 
 T = ZTGeneric("T")
 S = ZTRowGeneric("S")
@@ -35,40 +37,52 @@ S = ZTRowGeneric("S")
 over = ZTFunc(S, [T, U], [T, U, T])
 STDLIB.builtin_types["over"] = over
 
+S = ZTRowGeneric("S")
+A, B, C = ZTGeneric("A"), ZTGeneric("B"), ZTGeneric("C")
+rotplus = ZTFunc(S, [A, B, C], [C, A, B])
+STDLIB.builtin_types["rot+"] = rotplus
 
 S = ZTRowGeneric("S")
-inc_8bit = ZTFunc(S, [ZTBase.U8], [ZTBase.U8])
-STDLIB.builtin_types["inc-8bit"] = inc_8bit
+A, B, C = ZTGeneric("A"), ZTGeneric("B"), ZTGeneric("C")
+rotminus = ZTFunc(S, [A, B, C], [B, C, A])
+STDLIB.builtin_types["rot-"] = rotminus
 
-S = ZTRowGeneric("S")
-dec_8bit = ZTFunc(S, [ZTBase.U8], [ZTBase.U8])
-STDLIB.builtin_types["dec-8bit"] = dec_8bit
 
-S = ZTRowGeneric("S")
-inc_16bit = ZTFunc(S, [ZTBase.U16], [ZTBase.U16])
-STDLIB.builtin_types["inc-16bit"] = inc_16bit
 
-S = ZTRowGeneric("S")
-dec_16bit = ZTFunc(S, [ZTBase.U16], [ZTBase.U16])
-STDLIB.builtin_types["dec-16bit"] = dec_16bit
+############## FLOW ALTERATIONS ##############
 
-# control flow
+# if
 T = ZTGeneric("T")
 S = ZTRowGeneric("S")
 if_ = ZTFunc(S, [T, T, ZTBase.BOOL], [T])
 STDLIB.builtin_types["if"] = if_
 
-# loops
+# analogo di:  for i in range(start, end): foo(i)
 S = ZTRowGeneric("S")
 R = ZTRowGeneric("R")
 indexed_iter_8bit = ZTFunc(S, [ZTBase.U8, ZTBase.U8, ZTFunc(R, [ZTBase.U8], [])], [])
 STDLIB.builtin_types["indexed-iter"] = indexed_iter_8bit
 
-# # while (fa schifo)
-# S = ZTRowGeneric("S")
-# R = ZTRowGeneric("R")
-# while_loop = ZTFunc(S, [ZTFunc(R, [], [ZTBase.BOOL])], [])
-# STDLIB.builtin_types["while"] = while_loop
+# invariant while (doesn't change stack type at any iteration)
+S = ZTRowGeneric("S")
+while_loop = ZTFunc(
+    S, [ZTFunc(S, [], [ZTBase.BOOL]),
+        ZTFunc(S, [], [])],
+    []
+)
+STDLIB.builtin_types["while"] = while_loop
+
+
+
+############## ARITHMETIC ##############
+
+S = ZTRowGeneric("S")
+inc_8bit = ZTFunc(S, [ZTBase.U8], [ZTBase.U8])
+STDLIB.builtin_types["++u8"] = inc_8bit
+
+S = ZTRowGeneric("S")
+dec_8bit = ZTFunc(S, [ZTBase.U8], [ZTBase.U8])
+STDLIB.builtin_types["--u8"] = dec_8bit
 
 # 8bit arithmetic operations
 S = ZTRowGeneric("S")
@@ -87,7 +101,9 @@ S = ZTRowGeneric("S")
 div_8bit = ZTFunc(S, [ZTBase.U8, ZTBase.U8], [ZTBase.U8])
 STDLIB.builtin_types["/u8"] = div_8bit
 
-# comparisonsctx.clear_generic_subs()
+
+############## ARITHMETIC COMPARISONS ##############
+
 STDLIB.builtin_types[">u8"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8, ZTBase.U8], [ZTBase.BOOL])
 STDLIB.builtin_types["<u8"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8, ZTBase.U8], [ZTBase.BOOL])
 STDLIB.builtin_types[">=u8"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8, ZTBase.U8], [ZTBase.BOOL])
@@ -95,19 +111,29 @@ STDLIB.builtin_types["<=u8"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8, ZTBase.U8],
 STDLIB.builtin_types["==u8"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8, ZTBase.U8], [ZTBase.BOOL])
 STDLIB.builtin_types["!=u8"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8, ZTBase.U8], [ZTBase.BOOL])
 
-# converters
+
+############## LIST MANIPULATION ##############
+S = ZTRowGeneric("S")
+T = ZTGeneric("T")
+div_8bit = ZTFunc(S, [ZTBase.U8, ZTBase.U8], [ZTBase.U8])
+STDLIB.builtin_types["/u8"] = div_8bit
+
+
+############## CASTS ##############
+
 STDLIB.builtin_types["u16"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8], [ZTBase.U16])
+
+
+############## MEMORY ACCESS ##############
 
 # store-to-memory
 T = ZTGeneric("T")
 store = ZTFunc(ZTRowGeneric("S"), [T, ZTBase.U16], [])
 STDLIB.builtin_types["store-at"] = store
 
-# store-to-memory
-# T = ZTGeneric("T")
-# store = ZTFunc(ZTRowGeneric("S"), [ZTBase.U16], [T])
-# STDLIB.builtin_types["retrieve-at"] = store
 
+
+############## HIGHER ORDER FUNCTIONS ##############
 
 # eval quotation
 S = ZTRowGeneric("S")
@@ -116,6 +142,10 @@ STDLIB.builtin_types["eval"] = ZTFuncHelper(
     S, [ZTFuncHelper(S, [], R, [])],
     R, []
 )
+
+
+
+############## MISC ##############
 
 # show stack (removable?)
 S = ZTRowGeneric("S")
@@ -132,36 +162,4 @@ STDLIB.builtin_types["__clear"] = ZTFuncHelper(
     R, []
 )
 
-# while (non è il massimo)
-# S = ZTRowGeneric("S")
-# while_loop = ZTFunc(
-#     S, [ZTFunc(S, [], [ZTBase.BOOL]),
-#         ZTFunc(S, [], [])],
-#     []
-# )
-# STDLIB.builtin_types["while"] = while_loop
 
-S = ZTRowGeneric("S")
-R = ZTRowGeneric("R")
-T = ZTRowGeneric("T")
-while_loop = ZTFuncHelper(
-    S, [ZTFunc(R, [], [ZTBase.BOOL]),
-        ZTFuncHelper(R, [], T, [])],
-    T, []
-)
-STDLIB.builtin_types["while"] = while_loop
-
-#rot+ e rot-
-S = ZTRowGeneric("S")
-A, B, C = ZTGeneric("A"), ZTGeneric("B"), ZTGeneric("C")
-rotplus = ZTFunc(
-    S, [A, B, C], [C, A, B]
-)
-STDLIB.builtin_types["rot+"] = rotplus
-
-S = ZTRowGeneric("S")
-A, B, C = ZTGeneric("A"), ZTGeneric("B"), ZTGeneric("C")
-rotminus = ZTFunc(
-    S, [A, B, C], [B, C, A]
-)
-STDLIB.builtin_types["rot-"] = rotminus

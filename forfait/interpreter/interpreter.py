@@ -69,14 +69,10 @@ class Interpreter:
                 self.stack.append(top)
                 self.stack.append(trd)
                 self.stack.append(snd)
-            case "inc-8bit":
+            case "++u8":
                 self.stack.append((self.stack.pop() + 1) % 256)
-            case "inc-16bit":
-                self.stack.append((self.stack.pop() + 1) % 65536)
-            case "dec-8bit":
+            case "--u8":
                 self.stack.append((self.stack.pop() - 1) % 256)
-            case "dec-16bit":
-                self.stack.append((self.stack.pop() - 1) % 65536)
             case "if":
                 if self.stack.pop():
                     self.stack.pop()
