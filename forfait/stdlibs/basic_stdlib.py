@@ -103,6 +103,12 @@ T = ZTGeneric("T")
 store = ZTFunc(ZTRowGeneric("S"), [T, ZTBase.U16], [])
 STDLIB.builtin_types["store-at"] = store
 
+# store-to-memory
+# T = ZTGeneric("T")
+# store = ZTFunc(ZTRowGeneric("S"), [ZTBase.U16], [T])
+# STDLIB.builtin_types["retrieve-at"] = store
+
+
 # eval quotation
 S = ZTRowGeneric("S")
 R = ZTRowGeneric("R")
@@ -127,11 +133,21 @@ STDLIB.builtin_types["__clear"] = ZTFuncHelper(
 )
 
 # while (non è il massimo)
+# S = ZTRowGeneric("S")
+# while_loop = ZTFunc(
+#     S, [ZTFunc(S, [], [ZTBase.BOOL]),
+#         ZTFunc(S, [], [])],
+#     []
+# )
+# STDLIB.builtin_types["while"] = while_loop
+
 S = ZTRowGeneric("S")
-while_loop = ZTFunc(
-    S, [ZTFunc(S, [], [ZTBase.BOOL]),
-        ZTFunc(S, [], [])],
-    []
+R = ZTRowGeneric("R")
+T = ZTRowGeneric("T")
+while_loop = ZTFuncHelper(
+    S, [ZTFunc(R, [], [ZTBase.BOOL]),
+        ZTFuncHelper(R, [], T, [])],
+    T, []
 )
 STDLIB.builtin_types["while"] = while_loop
 

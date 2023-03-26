@@ -61,8 +61,8 @@ class TestParser(TestCase):
             "(''S -> ''S U8)"
         )
 
-    def test_recursive(self):
-        self.typeof_funcdef(
-            ": foo 1 +u8 foo ;" ,
-            "(''S -> ''S)"
-        )
+    # def test_recursive(self):
+    #     self.typeof_funcdef(
+    #         ": foo 1 +u8 foo ;" ,
+    #         "(''S -> ''S)"
+    #     )

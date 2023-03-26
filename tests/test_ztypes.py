@@ -5,7 +5,7 @@ from forfait.my_exceptions import ZException
 from forfait.ztypes import *
 from forfait.ztypes.context import Context
 from forfait.ztypes.ztypes import ZTFunction, ZTBase, ZTGeneric, type_of_application_rowpoly, ZTFuncHelper, \
-    ZTRowGeneric
+    ZTRowGeneric, ZTList, ZTypeError, ZTMaybe
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -24,7 +24,7 @@ class TestFunctionApplication_nopoly(TestCase):
             ctx = Context()
             result = type_of_application_rowpoly(f1, f2, ctx)
             self.fail("Obtained:\n" + str(result))
-        except ZException as e:
+        except ZTypeError as e:
             pass
 
     def test_lr_longer_rl(self):
@@ -137,3 +137,46 @@ class TestFunctionApplication_polymorphism(TestCase):
         self.assert_type(double_add_quoted, eval_, "(''R U8 U8 U8 -> ''R U8)")
 
 #################################################################
+
+class TestFunctionApplication_composite_types(TestCase):
+    def assert_type(self, f1, f2, expected: str):
+        ctx = Context()
+
+        self.assertEqual(
+            expected,
+            str(type_of_application_rowpoly(f1, f2, ctx)),
+        )
+
+    def assert_fail(self, f1, f2):
+        try:
+            ctx = Context()
+            result = type_of_application_rowpoly(f1, f2, ctx)
+            self.fail("Obtained:\n" + str(result))
+        except ZException as e:
+            pass
+
+    def test_comp1(self):
+        S = ZTRowGeneric("S")
+        R = ZTRowGeneric("R")
+
+        A = ZTGeneric("A")
+        list_gen  = ZTList(A)
+        list_conc = ZTList(ZTBase.U8)
+        list_gen2 = ZTList(A)
+
+        f1 = ZTFuncHelper(S, [A], S, [list_gen])
+        f2 = ZTFuncHelper(R, [list_conc], R, [list_gen2])
+
+        self.assert_type(f1, f2, "(''R U8 -> ''R LIST<U8>)")
+
+    def test_same_arity_type_differs_if_names_are_different(self):
+        S = ZTRowGeneric("S")
+        R = ZTRowGeneric("R")
+
+        A = ZTGeneric("A")
+        l  = ZTList(A)
+        m = ZTMaybe(ZTBase.U8)
+
+        f1 = ZTFuncHelper(S, [A], S, [l])
+        f2 = ZTFuncHelper(R, [m], R, [A])
+        self.assert_fail(f1, f2)

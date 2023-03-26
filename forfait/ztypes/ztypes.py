@@ -6,7 +6,14 @@ import logging as log
 
 from forfait.my_exceptions import ZException
 
-class UnificationError(ZException):
+class ZTypeError(ZException):
+    def __init__(self, explanation: str, *args: object) -> None:
+        super().__init__(
+            explanation,
+            *args[1:]
+        )
+
+class UnificationError(ZTypeError):
     def __init__(self, t1: "ZType", t2: "ZType", ctx: "Context", *args: object) -> None:
         super().__init__(
             f"Can't unify:\n\t{t1}\nwith:\n\t{t2}\n\nContext is:\n{ctx}",
@@ -52,6 +59,57 @@ class ZTBase(ZType, Enum):
 
     def __str__(self):
         return self.name
+
+##################################################
+
+class ZTComposite(ZType):
+    def __init__(self, typename: str, inner_types: list[ZType]):
+        self.typename = typename
+        self.inner_types = inner_types
+
+        if len(self.inner_types) == 0:
+            raise ZTypeError(self, "It is not a composite type with 0 inner types!")
+
+    def unify(self, other: "ZType", ctx: "Context"):
+        if isinstance(other, ZTGeneric):
+            other.unify(self, ctx)
+
+        if isinstance(other, ZTComposite):
+            if len(self.inner_types) != len(other.inner_types):
+                raise UnificationError(self, other, "Can't unify composite types as they have different arities")
+            if self.typename != other.typename:
+                raise UnificationError(self, other, "Can't unify two different composite types")
+
+            for l, r in zip(self.inner_types, other.inner_types):
+                l.unify(r, ctx)
+            return
+
+        raise UnificationError(self, other, "Can't unify a composite type with non-generic non-composite type")
+
+
+    def substitute_generic(self, gen: "ZTGeneric", new: "ZType") -> "ZType":
+        """
+        Exchanges any generic type contained within self (if any) with a concrete type instances
+        """
+        self.inner_types = [new if gen == t else t for t in self.inner_types]
+        return self
+
+
+    def find_generics_inside(self, s: Set["ZTGeneric"]):
+        """
+        Find any generic nested inside a type and put them in a set
+        """
+        for t in self.inner_types:
+            if isinstance(t, ZTGeneric):
+                s.add(t)
+
+    def __str__(self):
+        return f"{self.typename}<{' '.join(str(t) for t in self.inner_types).strip()}>"
+
+def ZTList(t: ZType):
+    return ZTComposite("LIST", [t])
+def ZTMaybe(t: ZType):
+    return ZTComposite("MAYBE", [t])
 
 ##################################################
 

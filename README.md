@@ -78,3 +78,7 @@ eval            ::        (''U (''U    -> ''V)  -> ''V)
 
 8 fibonacci :s     (( will print [55] ))
 ```
+
+## TODOs
+
+- [ ] Typing for recursive functions
