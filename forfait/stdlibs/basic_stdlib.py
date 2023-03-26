@@ -113,11 +113,20 @@ STDLIB.builtin_types["!=u8"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8, ZTBase.U8],
 
 
 ############## LIST MANIPULATION ##############
-S = ZTRowGeneric("S")
-T = ZTGeneric("T")
-div_8bit = ZTFunc(S, [ZTBase.U8, ZTBase.U8], [ZTBase.U8])
-STDLIB.builtin_types["/u8"] = div_8bit
 
+T = ZTGeneric("T")
+emptylist = ZTFunc(ZTRowGeneric("S"), [], [ZTList(T)])
+STDLIB.builtin_types["empty-list"] = emptylist
+
+T = ZTGeneric("T")
+L = ZTList(T)
+emptylist = ZTFunc(ZTRowGeneric("S"), [L, T], [L])
+STDLIB.builtin_types["add-to-list"] = emptylist
+
+T = ZTGeneric("T")
+L = ZTList(T)
+emptylist = ZTFunc(ZTRowGeneric("S"), [L, T], [L])
+STDLIB.builtin_types["last-of-list"] = emptylist
 
 ############## CASTS ##############
 
@@ -131,7 +140,10 @@ T = ZTGeneric("T")
 store = ZTFunc(ZTRowGeneric("S"), [T, ZTBase.U16], [])
 STDLIB.builtin_types["store-at"] = store
 
-
+# retrieve
+T = ZTGeneric("T")
+store = ZTFunc(ZTRowGeneric("S"), [ZTBase.U16], [T])
+STDLIB.builtin_types["retrieve-from"] = store
 
 ############## HIGHER ORDER FUNCTIONS ##############
 
