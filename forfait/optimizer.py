@@ -98,9 +98,9 @@ stdlib_peeps = [compiletime_arithmetic, inverse_of_inverse2]
 
 
 class Optimizer:
-    def __init__(self, ctx: Context, peep_optimizations: list[PeepholeOptimization]):
+    def __init__(self, ctx: Context, user_peep_optimizations: Optional[list[PeepholeOptimization]]=None):
         self.ctx = ctx
-        self.peep_opts = peep_optimizations
+        self.peep_opts = stdlib_peeps if user_peep_optimizations is None else stdlib_peeps + user_peep_optimizations
 
     def optimize(self, astnodes: List[AstNode]) -> List[AstNode]:
         optimized = list()

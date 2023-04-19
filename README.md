@@ -82,3 +82,7 @@ eval            ::        (''U (''U    -> ''V)  -> ''V)
 ## TODOs
 
 - [ ] Typing for recursive functions
+- [ ] Syntax for explicit type annotations
+- [ ] Structure-like data types
+- [ ] Macro `declare` for defining constructors and accessor to typed variables
+  - [ ] Use `declare` inside a funcdef for "local" variables is impossible, because that would require the concept of "scope" and i don't want it >:|

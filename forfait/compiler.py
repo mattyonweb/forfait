@@ -1,8 +1,9 @@
 from typing import List, Optional
 
 from forfait.astnodes import AstNode
+from forfait.code_generator import CodeGenerator
 from forfait.optimizer import Optimizer
-from forfait.parser import Parser
+from forfait.parser.parser import Parser
 from forfait.stdlibs.basic_stdlib import get_stdlib
 from forfait.ztypes.context import Context
 
@@ -16,3 +17,8 @@ class Compiler:
         optimized_ast: List[AstNode] = Optimizer(self.ctx).optimize(typed_ast)
         asm_code                     = CodeGenerator(self.ctx).generate(optimized_ast)
         print(asm_code)
+
+
+
+if __name__ == "__main__":
+    Compiler().compile_source_code("dup +u8")

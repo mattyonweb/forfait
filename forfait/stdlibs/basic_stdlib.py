@@ -132,7 +132,6 @@ STDLIB.builtin_types["last-of-list"] = emptylist
 
 STDLIB.builtin_types["u16"] = ZTFunc(ZTRowGeneric("S"), [ZTBase.U8], [ZTBase.U16])
 
-
 ############## MEMORY ACCESS ##############
 
 # store-to-memory
@@ -142,8 +141,8 @@ STDLIB.builtin_types["store-at"] = store
 
 # retrieve
 T = ZTGeneric("T")
-store = ZTFunc(ZTRowGeneric("S"), [ZTBase.U16], [T])
-STDLIB.builtin_types["retrieve-from"] = store
+retrieve = ZTFunc(ZTRowGeneric("S"), [ZTBase.U16], [T])
+STDLIB.builtin_types["retrieve-from"] = retrieve
 
 ############## HIGHER ORDER FUNCTIONS ##############
 

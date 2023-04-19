@@ -1,21 +1,16 @@
 from typing import List
 
-from forfait.astnodes import AstNode, Funcall, Funcdef, Sequence, Quote, Number, Boolean
 from forfait.my_exceptions import ZException
+from forfait.parser.parser_typesignature import parse_base_type
+from forfait.parser.parser_exceptions import *
 from forfait.ztypes.context import Context
 from forfait.ztypes.ztypes import ZTBase
+from forfait.astnodes import AstNode, Funcall, Funcdef, Sequence, Quote, Number, Boolean
 
 import logging
 logging.basicConfig(level=logging.INFO)
 
-class ZParserError(ZException):
-    pass
-class ZEmptyFile(ZParserError):
-    pass
-class ZUnknownFunction(ZParserError):
-    pass
-class ZNoEndToFuncDef(ZParserError):
-    pass
+
 
 class Parser:
     """
@@ -27,14 +22,36 @@ class Parser:
 
     def parse(self, code: str) -> List[AstNode]:
         """ Entry point for parsing. """
-        tokens = self.tokenize(code)
-        nodes  = self.parse_tokens(tokens)
+        preproc = self.preprocess(code)
+        tokens  = self.tokenize(code)
+        nodes   = self.parse_tokens(tokens)
         for n in nodes:
             n.typecheck(self.ctx)
             expr_type = n.typeof(self.ctx)
             if self.verbose:
                 print(expr_type)
         return nodes
+
+    ##################################################
+
+    def preprocess(self, code:str) -> str:
+        out = str()
+
+        start_comment = code.find("((")
+        end_comment   = 0
+
+        while start_comment != -1:
+            out += code[end_comment:start_comment]
+
+            closing_comment = code.find("))")
+            if closing_comment == -1:
+                raise ZParserError(f"Opening comment without closing parenhesis\n{code[start_comment:start_comment+50]}...")
+
+            end_comment   = closing_comment + 2
+            start_comment = code.find("((")
+
+        return out + code[end_comment:]
+
 
     ##################################################
 
@@ -61,8 +78,8 @@ class Parser:
             token = tokens.pop(0)
 
             match token:
-                case "((":
-                    self.consume_comment(tokens)
+                case "declare":  # macro for declaring variables
+                    ast.extend(self.parse_declare(tokens))
                 case "[|":
                     ast.append(self.parse_quotation(tokens))
                 case ":":
@@ -94,6 +111,14 @@ class Parser:
             idx = tokens.index(";")  # implies: no nested functions
         except ValueError as _:
             raise ZNoEndToFuncDef(" ".join(tokens))
+
+        try:
+            tokens[:idx].index(":")  # actually check for no nested functions
+        except ValueError as _:
+            pass
+        else:
+            raise ZForbiddenNestedFuncdef(" ".join(tokens))
+
 
         # esaurisci il body della funzione
         funcbody_tokens = list()
@@ -162,11 +187,30 @@ class Parser:
             out.append(Sequence(temp))
         return out
 
-    def consume_comment(self, tokens: List[str]):
-        next_token = tokens.pop(0)
+    def parse_declare(self, tokens: List[str]) -> List[str]:
+        name = tokens.pop(0)
+        type = self.parse_type_signature(tokens)
+        addr = tokens.pop(0)
         while next_token != "))":
             next_token = tokens.pop(0)
-        return
+        return # TODO
+
+
+    def parse_type_signature(self, tokens: List[str]):
+        assert tokens.pop(0) == "(|", "Beginning of type declaration is not a (|"
+
+        type_str = str()
+        while (token := tokens.pop(0)) != "|)":
+            type_str += token + " "
+        type_str = type_str.strip()
+
+        ztype: ZTBase = parse_base_type(type_str)
+
+        
+    def __parse_type_signature_free(self, tokens: list[str]):
+        match tokens.pop(0):
+            case "(":
+                list(itertools.takewhile(lambda t: t == ")", your_list))
 
 
 # if __name__ == "__main__":

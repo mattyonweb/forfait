@@ -4,7 +4,7 @@ from typing import *
 
 from forfait.astnodes import AstNode
 from forfait.optimizer import Optimizer, stdlib_peeps
-from forfait.parser import Parser
+from forfait.parser.parser import Parser
 from forfait.stdlibs.basic_stdlib import STDLIB
 
 

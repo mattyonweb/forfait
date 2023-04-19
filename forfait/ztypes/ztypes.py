@@ -167,11 +167,6 @@ class ZTRow(ZType):
             other.unify(self, ctx)
 
         if isinstance(other, ZTRow):
-            # TODO: ma non va bene... e se lo stack contiene un GenericRow? Che si fa?!
-            # assert len(self.types) == len(other.types)
-            # for x, y in zip(self.types, other.types):
-            #     x.unify(y, ctx)
-
             self_len, other_len = len(self.types), len(other.types)
 
             for i in range(min(self_len, other_len)):
@@ -197,9 +192,12 @@ class ZTRow(ZType):
             if isinstance(new, ZTRow):
                 self.row_var = new.row_var
                 self.types   = new.types + self.types
+            elif isinstance(new, ZTRowGeneric):
+                self.row_var = new
             else:
                 print("oh no")
                 breakpoint()
+
 
         return self
     
@@ -366,4 +364,11 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
         if k not in subs:  # HACK: TODO: da ripensare eh
             continue
         candidate.substitute_generic(k, subs[k])
+
+        ## these are so that intermediate functions with generic types assume a concrete value whenever possible
+        ## NB: not so sure this makes sens
+        ll.substitute_generic(k, subs[k])
+        lr.substitute_generic(k, subs[k])
+        rl.substitute_generic(k, subs[k])
+        rr.substitute_generic(k, subs[k])
     return candidate

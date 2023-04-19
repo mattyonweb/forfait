@@ -2,7 +2,7 @@ from unittest import TestCase
 from typing import *
 
 from forfait.astnodes import AstNode, Funcdef
-from forfait.parser import Parser
+from forfait.parser.parser import Parser
 from forfait.stdlibs.basic_stdlib import get_stdlib
 
 
