@@ -160,8 +160,14 @@ class ZTRow(ZType):
         self.row_var = row_var
         self.types = types
 
-    def size(self):
+    def arity(self):
         return len(self.types)
+
+    def keep_last_n(self, n: int):
+        if n == 0:
+            self.types = []
+        else:
+            self.types = self.types[-n:]
 
     def unify(self, other: "ZType", ctx: "Context"):
         if isinstance(other, ZTGeneric):
@@ -323,13 +329,13 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
     assert isinstance(t1, ZTFunction)  # assumi che il primo elemento di ogni lista sia un TRowGeneric
     assert isinstance(t2, ZTFunction)
 
-    ctx.clear_generic_subs()
+    # ctx.clear_generic_subs()
 
     ll, lr = t1.left, t1.right
     rl, rr = t2.left, t2.right
 
-    if lr.size() > rl.size():
-        common_seq_len = rl.size()
+    if lr.arity() > rl.arity():
+        common_seq_len = rl.arity()
         for tl, tr in zip(takelasts(lr.types, common_seq_len), rl.types):
             tl.unify(tr, ctx)
 
@@ -342,8 +348,8 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
         # candidate = ZTFunction(copy.deepcopy(ll), copy.deepcopy(rr))
         candidate = ZTFunction(ll, rr)
 
-    elif lr.size() < rl.size():
-        common_seq_len = lr.size()
+    elif lr.arity() < rl.arity():
+        common_seq_len = lr.arity()
         for tl, tr in zip(lr.types, takelasts(rl.types, common_seq_len)):
             tl.unify(tr, ctx)
 
@@ -373,11 +379,11 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
 
         ## these are so that intermediate functions with generic types assume a concrete value whenever possible
         ## NB: not so sure this makes sense
-        # if not isinstance(k, ZTRowGeneric):
-        # ll.substitute_generic(k, subs[k])
-        # lr.substitute_generic(k, subs[k])
-        # rl.substitute_generic(k, subs[k])
-        # rr.substitute_generic(k, subs[k])
+        if not isinstance(k, ZTRowGeneric):
+            ll.substitute_generic(k, subs[k])
+            lr.substitute_generic(k, subs[k])
+            rl.substitute_generic(k, subs[k])
+            rr.substitute_generic(k, subs[k])
 
 
     return candidate

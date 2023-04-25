@@ -4,7 +4,7 @@ from forfait.my_exceptions import ZException
 from forfait.parser.parser_typesignature import parse_base_type
 from forfait.parser.parser_exceptions import *
 from forfait.ztypes.context import Context
-from forfait.ztypes.ztypes import ZTBase
+from forfait.ztypes.ztypes import ZTBase, ZType
 from forfait.astnodes import AstNode, Funcall, Funcdef, Sequence, Quote, Number, Boolean
 
 import logging
@@ -25,12 +25,24 @@ class Parser:
         preproc = self.preprocess(code)  # TODO
         tokens  = self.tokenize(code)
         nodes   = self.parse_tokens(tokens)
+        nodes   = self.compress_ast(nodes)
+
+        # perform typechecking for each astnode in the program
         for n in nodes:
             n.typecheck(self.ctx)
             expr_type = n.typeof(self.ctx)
             if self.verbose:
                 print(expr_type)
             self.ctx.clear_generic_subs() # TODO: sbagliato?
+
+        # concludes typechecking, by adjusting the arity of each inferred function
+        # this is a hack: each Funcall is assigned the type of consecutive applications
+        # so far (which is wrong); in the next few lines, the superfluous types are removed
+        # from each function
+        for funcall, typedef in self.ctx.inner_type.items():
+            typedef.left.keep_last_n(funcall.arity_in)
+            typedef.right.keep_last_n(funcall.arity_out)
+
         return nodes
 
     ##################################################

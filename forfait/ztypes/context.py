@@ -14,7 +14,28 @@ class Context:
         self.builtin_types: Dict[str, ZTFunction] = dict()
         self.user_types: Dict[str, ZTFunction] = dict()
 
+        self.inner_type: Dict["Funcall", ZTFunction] = dict()
+
+    def reset(self):
+        self.clear_generic_subs()
+        self.inner_type = dict()
+        self.user_types = dict()
+
+
+    def _ordered_types(self, l: list["Funcall"]) -> list[ZType]:
+        """
+        only debug, returns types of single funcalls
+        :return:
+        """
+        return [self.inner_type[funcall] for funcall in l]
+
+    ###############################################################
+
     def clear_generic_subs(self):
+        for k,v in self.generic_subs.items():
+            for funcall, ftype in self.inner_type.items():
+                self.inner_type[funcall] = ftype.substitute_generic(k,v)
+
         self.generic_subs: Dict[ZTGeneric, ZType] = dict()
 
     def get_builtin_type(self, funcname):
@@ -36,7 +57,10 @@ class Context:
             old.unify(new_type, temp_ctx)
             for key, value in temp_ctx.generic_subs.items():
                 self.sub_in_subs(key, value)
+
         else:
+            for key, value in self.generic_subs.items():
+                self.generic_subs[key] = value.substitute_generic(generic_type, new_type)
             self.generic_subs[generic_type] = new_type
 
     def add_userfunction_type(self, funcname: str, t: ZTFunction):

@@ -1,4 +1,7 @@
+import copy
 from abc import abstractmethod
+from typing import Optional
+
 # from typing import *
 
 from forfait.my_exceptions import ZException
@@ -28,6 +31,8 @@ class Funcall(AstNode):
     def __init__(self, funcname: str, type_: ZTFunction):
         self.funcname: str = funcname
         self.type = type_
+        self.arity_in  = self.type.left.arity()
+        self.arity_out = self.type.right.arity()
 
     def typeof(self, _: Context) -> ZTFunction:
         return self.type
@@ -53,9 +58,19 @@ class Quote(Funcall):
         self.row_generic = ZTRowGeneric("NQ")
         self.funcname = None
 
+        self.type      = None
+        self.arity_in  = None
+        self.arity_out = None
+
     def typeof(self, ctx: Context) -> ZTFunction:
-        return ZTFuncHelper(self.row_generic, [], self.row_generic, [self.body.typeof(ctx)])
-        # return ZTFunction([], [self.body.typeof(ctx)])
+        if self.type is not None:
+             return self.type
+
+        self.type      = copy.deepcopy(ZTFuncHelper(self.row_generic, [], self.row_generic, [self.body.typeof(ctx)]))
+        self.arity_in  = self.type.left.arity()
+        self.arity_out = self.type.right.arity()
+
+        return self.type
 
     def typecheck(self, ctx: Context):
         self.body.typecheck(ctx)
@@ -113,34 +128,53 @@ class Boolean(Funcall):
 ##################################################
 
 class Sequence(AstNode):
+    """
+    A sequence of funcalls/quotations/numbers.
+    """
     def __init__(self, funcs: list[Funcall]):
-        self.funcs = funcs
+        self.funcs: list[Funcall]  = funcs
+        self.type: Optional[ZType] = None  #set after first typeof() call, then treated as a singleton
 
     def typecheck(self, ctx: Context):
         for x in self.funcs:
             x.typecheck(ctx)
+            ctx.inner_type[x] = x.typeof(ctx)
 
     def typeof(self, ctx: Context) -> ZType:
+        # if the type was already calculated, then return the old result
+        if self.type is not None:
+            return self.type
+
         if len(self.funcs) == 0:
             raise ZException("Empty sequence of funcalls has no type")
         if len(self.funcs) == 1:
             out = self.funcs[0].typeof(ctx)
             return out
 
+        # calculate the type of the first function application
         last_type = type_of_application_rowpoly(
             self.funcs[0].typeof(ctx),
             self.funcs[1].typeof(ctx),
             ctx
         )
 
+        # calculate the type of all the remaining function applications
         for funcall in self.funcs[2:]:
-            ctx.clear_generic_subs()
             last_type = type_of_application_rowpoly(
                 last_type, funcall.typeof(ctx), ctx
             )
 
+        # at the end of a sequence, the substitution equations are not needed anymore
+        # (where would they be needed?)
         ctx.clear_generic_subs()
+
+        # store the final type of the whole sequence (`copy` is needed, as otherwise
+        # it would be cut when adjusting the arity of the types in Context, at the end
+        # of the parsing phase)
+        self.type = copy.deepcopy(last_type)
+
         return last_type
+
 
     def __str__(self):
         return " ".join([str(f) for f in self.funcs]).strip()
@@ -149,6 +183,7 @@ class Sequence(AstNode):
         print(f"{' '*indent}Sequence:")
         for x in self.funcs:
             x.prettyprint(indent+2)
+
 ##################################################
 
 class Funcdef(AstNode):

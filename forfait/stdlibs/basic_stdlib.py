@@ -101,6 +101,32 @@ S = ZTRowGeneric("S")
 div_8bit = ZTFunc(S, [ZTBase.U8, ZTBase.U8], [ZTBase.U8])
 STDLIB.builtin_types["/u8"] = div_8bit
 
+###### 16bit 
+
+S = ZTRowGeneric("S")
+inc_16bit = ZTFunc(S, [ZTBase.U16], [ZTBase.U16])
+STDLIB.builtin_types["++u16"] = inc_16bit
+
+S = ZTRowGeneric("S")
+dec_16bit = ZTFunc(S, [ZTBase.U16], [ZTBase.U16])
+STDLIB.builtin_types["--u16"] = dec_16bit
+
+# 16bit arithmetic operations
+S = ZTRowGeneric("S")
+add_16bit = ZTFunc(S, [ZTBase.U16, ZTBase.U16], [ZTBase.U16])
+STDLIB.builtin_types["+u16"] = add_16bit
+
+S = ZTRowGeneric("S")
+sub_16bit = ZTFunc(S, [ZTBase.U16, ZTBase.U16], [ZTBase.U16])
+STDLIB.builtin_types["-u16"] = sub_16bit
+
+S = ZTRowGeneric("S")
+mult_16bit = ZTFunc(S, [ZTBase.U16, ZTBase.U16], [ZTBase.U16])
+STDLIB.builtin_types["*u16"] = mult_16bit
+
+S = ZTRowGeneric("S")
+div_16bit = ZTFunc(S, [ZTBase.U16, ZTBase.U16], [ZTBase.U16])
+STDLIB.builtin_types["/u16"] = div_16bit
 
 ############## ARITHMETIC COMPARISONS ##############
 
@@ -174,3 +200,9 @@ STDLIB.builtin_types["__clear"] = ZTFuncHelper(
 )
 
 
+S = ZTRowGeneric("S")
+T = ZTGeneric("T")
+STDLIB.builtin_types["identity"] = ZTFuncHelper(
+    S, [T],
+    S, [T]
+)
