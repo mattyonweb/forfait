@@ -2,7 +2,7 @@ from unittest import TestCase
 # from typing import *
 
 from forfait.astnodes import AstNode, Funcdef, Sequence
-from forfait.parser.parser import Parser
+from forfait.parser.firstphase import FirstPhase
 from forfait.stdlibs.basic_stdlib import get_stdlib
 
 
@@ -11,7 +11,7 @@ class TestParser_FinalType(TestCase):
         ctx = get_stdlib()
         ctx.reset()
 
-        sequence = Parser(ctx).parse(code)[0]
+        sequence = FirstPhase(ctx).parse_and_typecheck(code)[0]
 
         self.assertEqual(
             expected_type,
@@ -22,8 +22,8 @@ class TestParser_FinalType(TestCase):
         ctx = get_stdlib()
         ctx.reset()
 
-        parser = Parser(ctx)
-        sequence = parser.parse(code)[0]
+        parser = FirstPhase(ctx)
+        sequence = parser.parse_and_typecheck(code)[0]
 
         assert isinstance(sequence, Sequence)
 
@@ -32,7 +32,7 @@ class TestParser_FinalType(TestCase):
 
     def typeof_funcdef(self, code: str, expected_type):
         ctx = get_stdlib()
-        funcdef: Funcdef = Parser(ctx).parse(code)[0]
+        funcdef: Funcdef = FirstPhase(ctx).parse_and_typecheck(code)[0]
 
         self.assertEqual(
             expected_type,
@@ -89,8 +89,8 @@ class TestParser_SingleFunctions(TestCase):
         ctx = get_stdlib()
         ctx.reset()
 
-        parser = Parser(ctx)
-        sequence = parser.parse(code)[0]
+        parser = FirstPhase(ctx)
+        sequence = parser.parse_and_typecheck(code)[0]
 
         assert isinstance(sequence, Sequence)
 

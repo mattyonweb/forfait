@@ -13,38 +13,56 @@ The syntax strives to be as minimal as possible without being too idealistic abo
 An example program may be:
 
 ```
-: square dup *8bit ;
+( define a function `square` that, given x, pushes x^2 )
+: square    
+  dup *8bit ;
 
-0 10 [| square |] indexed-iter
+( prints the first 10 squares; similar to a `for x in range(0,10) ...` )
+0 10 [| square :s drop |] indexed-iter
 
+( prints the current stack (it will be empty!) )
 :s
 ```
 
-This program firstly defines a function named `square` on 8bit numbers; the function has signature `(''S U8 -> ''S U8)` (more on types later), and is delimited by `: (...) ;` as in Forth.
-
-Then, `indexed-iter` executes the function `square` for each number between `0` and `9` (the weird parenthesis around `square` is a quotation, or a "suspended computation" if you prefer).
-
-Finally, `:s` prints the stack on the screen.
-
 ## Type system
 
-At the moment, the type system is only roughly sketched. 
+(note: the following syntax about types is only for sake of clarity, it is not the actual syntax of the language)
 
-There are two types of generics: classic generics and "Row" (or stack) generics; the latter allow to remain generic over a row (read: an ordered list) of types, instead than on only one type. 
+Roughly, Forfait implements a classic Hindley-Milner type system with generics and row polymoprhism.
+
+There are two types of generics: classic generics and "Row" (or stack) generics; the latter allow to remain generic over a row (i.e. an ordered list) of types, instead than on only one type. 
+
+For example, the type signature of `swap` is the following :
+
+```
+swap :: (''S 'A 'B -> ''S 'B 'A)
+```
+
+`''S` is a _row_ type variable. It basically says: except for the two top-most positions (`'A` and `'B`), we don't care what is in the stack, and we call whatever it is `''S`.
+
+`'A` and `'B` are normal generic type variables.
+
+### What if I don't care about row generics?
 
 Row generics are necessary if we want to correctly type `eval`-like functions. 
 
-To see an example of this, let's first look at the "type signature" of a quotation.
+To see an example of this, let's first look at the type signature of a quotation.
 
-Let's take the builtin function `drop` (the following syntax is only for sake of clarity, it is not the actual syntax of the language):
+#### Quotations (suspended computations)
+
+Let's take the unquoted, builtin function `drop`:
 
 `drop :: (''S 'T -> ''S)`
 
-The signature means: drop accepts whatever stack `''S` on top an object with generic type `'T`. Here `''S` is the row-generic variable, `'T` is a "classic" generic instead.
+The signature means: `drop` accepts whatever stack `''S` that has an object with generic type `'T` on top. 
+
+Quoting `drop` results in:
 
 `[| drop |] :: (''R -> ''R (''S 'T -> ''S))`
 
-The quotation (i.e. weird parenthesis) around `drop` wraps `drop` within a no-argument function: this is the way to delay the actual esecution of `drop` which, without the quotes, would be executed instantly. Note the existence of two row generics at the same time!
+The quotation (i.e. weird squared parenthesis) around `drop` wraps `drop` within a no-argument function: this is the way to delay the actual esecution of `drop` which, without the quotes, would be executed instantly. Note the existence of two different row generics at the same time, `''R` and `''S`!
+
+#### `eval` function
 
 `eval :: (''U (''U -> ''V) -> ''V)`
 
@@ -57,7 +75,6 @@ eval            ::        (''U (''U    -> ''V)  -> ''V)
             ---------------------------------------
 [| drop |] eval :: (''R -> ''V)  which, after unification, becomes:
 [| drop |] eval :: (''S 'T -> ''S)  (names may be different IRL)
-           
 ```
 
 ## Few examples

@@ -138,6 +138,8 @@ class Sequence(AstNode):
     def typecheck(self, ctx: Context):
         for x in self.funcs:
             x.typecheck(ctx)
+
+            # every function encountered is saved in the ctx
             ctx.inner_type[x] = x.typeof(ctx)
 
     def typeof(self, ctx: Context) -> ZType:

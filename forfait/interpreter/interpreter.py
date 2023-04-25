@@ -24,7 +24,7 @@ class Interpreter:
         self.stack = list()
 
     def eval(self, s: str):
-        for node in self.optimizer.optimize(Parser(self.ctx, verbose=True).parse(s)):
+        for node in self.optimizer.optimize(Parser(self.ctx, verbose=True).parse_and_typecheck(s)):
             self.eval_astnode(node)
 
     def eval_astnode(self, node: AstNode):

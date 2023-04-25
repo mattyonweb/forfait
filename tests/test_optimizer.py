@@ -4,13 +4,13 @@ from typing import *
 
 from forfait.astnodes import AstNode
 from forfait.optimizer import Optimizer, stdlib_peeps
-from forfait.parser.parser import Parser
+from forfait.parser.firstphase import FirstPhase
 from forfait.stdlibs.basic_stdlib import STDLIB
 
 
 class TestOptimizer(TestCase):
     def sequence_tester(self, source, expected: list):
-        seq: Sequence = Parser(STDLIB).parse(source)[0]
+        seq: Sequence = FirstPhase(STDLIB).parse_and_typecheck(source)[0]
         opt = Optimizer(STDLIB, stdlib_peeps).optimization_round(seq.funcs)
 
         self.assertListEqual(
@@ -19,7 +19,7 @@ class TestOptimizer(TestCase):
         )
 
     def whole_program_tester(self, source, expected: str):
-        nodes: list[AstNode] = Parser(STDLIB).parse(source)
+        nodes: list[AstNode] = FirstPhase(STDLIB).parse_and_typecheck(source)
         opt: list[AstNode]   = Optimizer(STDLIB, stdlib_peeps).optimize(nodes)
 
         self.assertEqual(
