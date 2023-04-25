@@ -22,7 +22,7 @@ class Parser:
 
     def parse(self, code: str) -> List[AstNode]:
         """ Entry point for parsing. """
-        preproc = self.preprocess(code)
+        preproc = self.preprocess(code)  # TODO
         tokens  = self.tokenize(code)
         nodes   = self.parse_tokens(tokens)
         for n in nodes:
@@ -30,6 +30,7 @@ class Parser:
             expr_type = n.typeof(self.ctx)
             if self.verbose:
                 print(expr_type)
+            self.ctx.clear_generic_subs() # TODO: sbagliato?
         return nodes
 
     ##################################################
@@ -78,8 +79,8 @@ class Parser:
             token = tokens.pop(0)
 
             match token:
-                case "declare":  # macro for declaring variables
-                    ast.extend(self.parse_declare(tokens))
+                # case "declare":  # macro for declaring variables
+                #     ast.extend(self.parse_declare(tokens))
                 case "[|":
                     ast.append(self.parse_quotation(tokens))
                 case ":":
@@ -187,30 +188,30 @@ class Parser:
             out.append(Sequence(temp))
         return out
 
-    def parse_declare(self, tokens: List[str]) -> List[str]:
-        name = tokens.pop(0)
-        type = self.parse_type_signature(tokens)
-        addr = tokens.pop(0)
-        while next_token != "))":
-            next_token = tokens.pop(0)
-        return # TODO
-
-
-    def parse_type_signature(self, tokens: List[str]):
-        assert tokens.pop(0) == "(|", "Beginning of type declaration is not a (|"
-
-        type_str = str()
-        while (token := tokens.pop(0)) != "|)":
-            type_str += token + " "
-        type_str = type_str.strip()
-
-        ztype: ZTBase = parse_base_type(type_str)
-
-        
-    def __parse_type_signature_free(self, tokens: list[str]):
-        match tokens.pop(0):
-            case "(":
-                list(itertools.takewhile(lambda t: t == ")", your_list))
+    # def parse_declare(self, tokens: List[str]) -> List[str]:
+    #     name = tokens.pop(0)
+    #     type = self.parse_type_signature(tokens)
+    #     addr = tokens.pop(0)
+    #     while next_token != "))":
+    #         next_token = tokens.pop(0)
+    #     return # TODO
+    #
+    #
+    # def parse_type_signature(self, tokens: List[str]):
+    #     assert tokens.pop(0) == "(|", "Beginning of type declaration is not a (|"
+    #
+    #     type_str = str()
+    #     while (token := tokens.pop(0)) != "|)":
+    #         type_str += token + " "
+    #     type_str = type_str.strip()
+    #
+    #     ztype: ZTBase = parse_base_type(type_str)
+    #
+    #
+    # def __parse_type_signature_free(self, tokens: list[str]):
+    #     match tokens.pop(0):
+    #         case "(":
+    #             list(itertools.takewhile(lambda t: t == ")", your_list))
 
 
 # if __name__ == "__main__":

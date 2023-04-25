@@ -1,3 +1,4 @@
+import copy
 from abc import abstractmethod
 from enum import Enum
 from typing import *
@@ -338,6 +339,7 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
             ctx
         )
 
+        # candidate = ZTFunction(copy.deepcopy(ll), copy.deepcopy(rr))
         candidate = ZTFunction(ll, rr)
 
     elif lr.size() < rl.size():
@@ -350,13 +352,17 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
             ZTRow(rl.row_var, rl.types if common_seq_len == 0 else rl.types[:-common_seq_len]),
             ctx
         )
+
+        # candidate = ZTFunction(copy.deepcopy(ll), copy.deepcopy(rr))
         candidate = ZTFunction(ll, rr)
 
     else:
         for tl, tr in zip(lr.types, rl.types):
             tl.unify(tr, ctx)
         lr.row_var.unify(rl.row_var, ctx)
+        # candidate = ZTFunction(copy.deepcopy(ll), copy.deepcopy(rr))
         candidate = ZTFunction(ll, rr)
+
 
     # performs ordered rewriting of `Generic`s in an order given by the dependency graph
     subs, order = ctx.ordered_subs()
@@ -366,9 +372,12 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
         candidate.substitute_generic(k, subs[k])
 
         ## these are so that intermediate functions with generic types assume a concrete value whenever possible
-        ## NB: not so sure this makes sens
-        ll.substitute_generic(k, subs[k])
-        lr.substitute_generic(k, subs[k])
-        rl.substitute_generic(k, subs[k])
-        rr.substitute_generic(k, subs[k])
+        ## NB: not so sure this makes sense
+        # if not isinstance(k, ZTRowGeneric):
+        # ll.substitute_generic(k, subs[k])
+        # lr.substitute_generic(k, subs[k])
+        # rl.substitute_generic(k, subs[k])
+        # rr.substitute_generic(k, subs[k])
+
+
     return candidate

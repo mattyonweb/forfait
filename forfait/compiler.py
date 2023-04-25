@@ -21,4 +21,4 @@ class Compiler:
 
 
 if __name__ == "__main__":
-    Compiler().compile_source_code("dup +u8")
+    Compiler().compile_source_code("1 3 dup 99 u16 101 u16 dup")

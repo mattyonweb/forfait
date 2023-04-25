@@ -18,6 +18,10 @@ class AstNode:
     def prettyprint(self, indent=0):
         pass
 
+    def asm(self, ctx: Context) -> list[tuple]:
+        return []
+
+
 ##################################################
 
 class Funcall(AstNode):
@@ -33,6 +37,12 @@ class Funcall(AstNode):
 
     def prettyprint(self, indent=0):
         print(f"{' '*indent}Funcall {self.funcname} :: {self.type}")
+
+    def asm(self, ctx: Context) -> list[tuple]:
+        if asm := ctx.get_builtin_asm(self.funcname):
+            return asm
+        if asm := ctx.get_userdefined_asm(self.funcname):
+            return asm
 
 
 ##################################################
