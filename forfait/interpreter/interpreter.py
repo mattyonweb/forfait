@@ -2,7 +2,8 @@ import traceback
 
 from forfait.astnodes import AstNode, Quote, Number, Funcall, Funcdef, Sequence, Boolean
 from forfait.optimizer import Optimizer, stdlib_peeps
-from forfait.parser import Parser, ZUnknownFunction
+from forfait.parser.firstphase import FirstPhase
+from forfait.parser.parser_exceptions import ZUnknownFunction
 from forfait.stdlibs.basic_stdlib import STDLIB
 from forfait.ztypes.context import Context
 
@@ -24,7 +25,7 @@ class Interpreter:
         self.stack = list()
 
     def eval(self, s: str):
-        for node in self.optimizer.optimize(Parser(self.ctx, verbose=True).parse_and_typecheck(s)):
+        for node in self.optimizer.optimize(FirstPhase(self.ctx, verbose=True).parse_and_typecheck(s)):
             self.eval_astnode(node)
 
     def eval_astnode(self, node: AstNode):
@@ -73,13 +74,15 @@ class Interpreter:
                 self.stack.append((self.stack.pop() + 1) % 256)
             case "--u8":
                 self.stack.append((self.stack.pop() - 1) % 256)
-            case "if":
-                if self.stack.pop():
-                    self.stack.pop()
-                else:
-                    temp = self.stack.pop()
-                    self.stack.pop()
-                    self.stack.append(temp)
+            case "if": # TODO
+                pass
+                # else_, then_, cond = self.stack.pop(), self.stack.pop(), self.stack.pop()
+                # if self.stack.pop():
+                #     self.stack.pop()
+                # else:
+                #     temp = self.stack.pop()
+                #     self.stack.pop()
+                #     self.stack.append(temp)
             case "indexed-iter":
                 quoted_foo = self.stack.pop()  # è una lambda
                 end, start = self.stack.pop(), self.stack.pop()

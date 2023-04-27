@@ -133,7 +133,7 @@ class ZTGeneric(ZType):
         return f"'{self.human_name}"
 
 ##################################################
-
+DEBUG_ZTROWGENERIC = False
 class ZTRowGeneric(ZTGeneric):
     counter = 0
 
@@ -150,7 +150,8 @@ class ZTRowGeneric(ZTGeneric):
         s.add(self)
 
     def __str__(self):
-        # return f"''{self.human_name}_{self.counter}"
+        if DEBUG_ZTROWGENERIC:
+            return f"''{self.human_name}_{self.counter}"
         return f"''{self.human_name}"
 
 ##################################################
@@ -177,7 +178,7 @@ class ZTRow(ZType):
             self_len, other_len = len(self.types), len(other.types)
 
             for i in range(min(self_len, other_len)):
-                self.types[-(i + 1)].unify(self.types[-(i + 1)], ctx)
+                self.types[-(i + 1)].unify(other.types[-(i + 1)], ctx)
 
             if self_len <= other_len:
                 self.row_var.unify(ZTRow(other.row_var, other.types[:other_len - self_len]), ctx)

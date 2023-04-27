@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 from unittest import TestCase
 # from typing import *
 
@@ -67,6 +70,13 @@ class TestParser_FinalType(TestCase):
         self.parse_simple_sequence(
             "1 10 [| drop |] indexed-iter" ,
             "(''S -> ''S)"
+        )
+
+    def test_quotes5(self):
+        # "underflow" of the stack inside a quote should work correctly!
+        self.parse_simple_sequence(
+            "1 10 [| drop |] test" ,
+            "(''S -> ''S U8)"
         )
 
     def test_quotes_while(self):

@@ -6,7 +6,7 @@ from typing import *
 from typing import Dict, Set, Tuple, List
 
 from forfait.data_structures.graph import Graph
-from forfait.ztypes.ztypes import ZTGeneric, ZType, ZTFunction
+from forfait.ztypes.ztypes import ZTGeneric, ZType, ZTFunction, ZTRowGeneric, ZTRow
 
 
 class Context:
@@ -81,6 +81,11 @@ class Context:
         if generic_type == new_type:
             return
 
+        # If ''S (a RowGeneric) is going to be sostituted by [''S] (a Row with the same RowGeneric and nothing else)
+        # then you are de facto making a trivial substitution ''S = ''S
+        if isinstance(generic_type, ZTRowGeneric) and (isinstance(new_type, ZTRow) and len(new_type.types)==0 and new_type.row_var==generic_type):
+            return
+
         # if genericvar already in the dict, unify the old substitution with the
         # new; if the types are compatible, the unification will be ok.
         if generic_type in self.generic_subs:
@@ -91,6 +96,9 @@ class Context:
             # substitute in the currently known substitutions
             for key, value in temp_ctx.generic_subs.items():
                 self.sub_in_subs(key, value)
+            for key, value in temp_ctx.generic_subs.items():
+                if key not in self.generic_subs:
+                    self.generic_subs[key] = value
 
         else:
             for key, value in self.generic_subs.items():

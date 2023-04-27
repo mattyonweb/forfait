@@ -51,11 +51,34 @@ STDLIB.builtin_types["rot-"] = rotminus
 
 ############## FLOW ALTERATIONS ##############
 
+# # if
+# T = ZTGeneric("T")
+# S = ZTRowGeneric("S")
+# if_ = ZTFunc(S, [T, T, ZTBase.BOOL], [T])
+# STDLIB.builtin_types["if"] = if_
+
 # if
 T = ZTGeneric("T")
 S = ZTRowGeneric("S")
-if_ = ZTFunc(S, [T, T, ZTBase.BOOL], [T])
+R = ZTRowGeneric("R")
+if_ = ZTFuncHelper(
+    S,
+    [ZTBase.BOOL, ZTFuncHelper(S, [], R, []), ZTFuncHelper(S, [], R, [])],
+    R,
+    []
+)
 STDLIB.builtin_types["if"] = if_
+
+# TODO: test, da rimuovere
+W = ZTRowGeneric("W")
+Q = ZTRowGeneric("Q")
+test = ZTFuncHelper(
+    W,
+    [ZTFuncHelper(W, [], Q, [])],
+    Q,
+    []
+)
+STDLIB.builtin_types["test"] = test
 
 # analogo di:  for i in range(start, end): foo(i)
 S = ZTRowGeneric("S")
