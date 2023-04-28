@@ -83,7 +83,9 @@ class Context:
 
         # If ''S (a RowGeneric) is going to be sostituted by [''S] (a Row with the same RowGeneric and nothing else)
         # then you are de facto making a trivial substitution ''S = ''S
-        if isinstance(generic_type, ZTRowGeneric) and (isinstance(new_type, ZTRow) and len(new_type.types)==0 and new_type.row_var==generic_type):
+        if isinstance(generic_type, ZTRowGeneric) and (
+                isinstance(new_type, ZTRow) and len(new_type.types)==0 and new_type.row_var==generic_type
+        ):
             return
 
         # if genericvar already in the dict, unify the old substitution with the

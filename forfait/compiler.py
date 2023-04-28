@@ -1,5 +1,5 @@
 import logging
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 from typing import List, Optional
 
@@ -28,11 +28,10 @@ class Compiler:
         for astnode in typed_ast:
             print(str(astnode)[:77] + ("" if len(str(astnode)) < 77 else " [...]"))
 
-            cfg = sissify(astnode)
+            cfg, _ = sissify(astnode)
             # for instr in instructions:
             #     print(f"\t{instr}")
-            for cfg__ in cfg.visit():
-                print(cfg__)
+            cfg.visit(lambda c: print(c))
 
     ###################################################
 
@@ -41,7 +40,7 @@ class Compiler:
         while (cmd := input("> ").strip()) != "quit":
             try:
                 typed_ast = FirstPhase(self.ctx).parse_and_typecheck(cmd)
-                # self.ssify(cmd)
+                self.ssify(cmd)
             except Exception as e:
                 import traceback
                 traceback.print_exc()
