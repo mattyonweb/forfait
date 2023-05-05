@@ -8,7 +8,8 @@ from forfait.ztypes.ztypes import ZTFunction, ZTBase, ZTGeneric, type_of_applica
     ZTRowGeneric, ZTList, ZTypeError, ZTMaybe
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s]:%(message)s")
+
 
 class TestFunctionApplication_nopoly(TestCase):
     def assert_type(self, f1, f2, expected: str):
@@ -136,6 +137,16 @@ class TestFunctionApplication_polymorphism(TestCase):
 
         self.assert_type(double_add_quoted, eval_, "(''R U8 U8 U8 -> ''R U8)")
 
+    def test_global_poly2_order_of_equation(self):
+        S1 = ZTRowGeneric("S")
+        S2 = ZTRowGeneric("R")
+
+        A = ZTGeneric("A")
+        B = ZTGeneric("B")
+        X = ZTGeneric("X")
+        swap = ZTFuncHelper(S1, [A], S1, [A])
+        dup  = ZTFuncHelper(S2, [X], S2, [B])
+        self.assert_type(swap, dup, "(''R 'X -> ''R 'B)")
 
 #################################################################
 

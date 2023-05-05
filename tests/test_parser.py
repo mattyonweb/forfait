@@ -1,10 +1,14 @@
 import logging
-logging.basicConfig(level=logging.DEBUG)
+
+from forfait.ztypes.ztypes import ZType
+
+logging.basicConfig(level=logging.DEBUG, format="[%(levelname)s] %(message)s\n\t(in: %(funcName)s:%(lineno)d)")
+
 
 from unittest import TestCase
 # from typing import *
 
-from forfait.astnodes import AstNode, Funcdef, Sequence
+from forfait.astnodes import Funcdef, Sequence, Quote
 from forfait.parser.firstphase import FirstPhase
 from forfait.stdlibs.basic_stdlib import get_stdlib
 
@@ -32,6 +36,16 @@ class TestParser_FinalType(TestCase):
 
         return ctx._ordered_types(sequence.funcs)
 
+    def parse_simple_sequence_and_get_first_ast(self, code: str):
+        ctx = get_stdlib()
+        ctx.reset()
+
+        parser = FirstPhase(ctx)
+        sequence = parser.parse_and_typecheck(code)[0]
+
+        assert isinstance(sequence, Sequence)
+
+        return sequence
 
     def typeof_funcdef(self, code: str, expected_type):
         ctx = get_stdlib()
@@ -54,6 +68,16 @@ class TestParser_FinalType(TestCase):
             "(''NQ -> ''NQ (''S -> ''S U8 U8 U8))"
         )
 
+    def test_quotes1_innertypes(self):
+        x = self.parse_simple_sequence_and_get_first_ast(
+            "[| 1 3 5 |]"
+        )
+        quote = x.funcs[0]
+        assert isinstance(quote, Quote)
+        self.assertEqual(str(quote.body.funcs[0].type), "(''S -> ''S U8)")
+        self.assertEqual(str(quote.body.funcs[1].type), "(''S -> ''S U8)")
+        self.assertEqual(str(quote.body.funcs[2].type), "(''S -> ''S U8)")
+
     def test_quotes2(self):
         self.parse_simple_sequence(
             "0 5 [| dup u16 store-at |] indexed-iter",
@@ -65,6 +89,7 @@ class TestParser_FinalType(TestCase):
             "[| dup dup |]" ,
             "(''NQ -> ''NQ (''S 'T -> ''S 'T 'T 'T))"
         )
+
 
     def test_quotes4(self):
         self.parse_simple_sequence(
@@ -78,6 +103,21 @@ class TestParser_FinalType(TestCase):
             "1 10 [| drop |] test" ,
             "(''S -> ''S U8)"
         )
+
+    def test_quotes6(self):
+        # generic inside quotes does not necessarily assume the stacktype of the thing immediately preceding it
+        self.parse_simple_sequence(
+            "5 true [| dup |] rot- swap eval" ,
+            "(''S -> ''S BOOL U8 U8)"
+        )
+
+    def test_quotes6_singular_types(self):
+        sequence = self.parse_simple_sequence_and_get_first_ast(
+            "5 true [| dup swap swap |] rot- swap eval"
+        )
+        quote = sequence.funcs[2]
+        assert isinstance(quote, Quote)
+        self.assertEqual(str(quote.body.funcs[0].type), "(''S U8 -> ''S U8 U8)")
 
     def test_quotes_while(self):
         self.typeof_funcdef(
@@ -106,7 +146,7 @@ class TestParser_SingleFunctions(TestCase):
 
         return ctx._ordered_types(sequence.funcs)
 
-    def my_assert(self, l: list["ZType"], idx: int, expected: str):
+    def my_assert(self, l: list[ZType], idx: int, expected: str):
         self.assertEqual(
             str(l[idx]),
             expected

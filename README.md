@@ -103,3 +103,7 @@ eval            ::        (''U (''U    -> ''V)  -> ''V)
 - [ ] Structure-like data types
 - [ ] Macro `declare` for defining constructors and accessor to typed variables
   - [ ] Use `declare` inside a funcdef for "local" variables is impossible, because that would require the concept of "scope" and i don't want it >:|
+- [ ] SSA
+  - [ ] Test constant propagation on branching code (see if constants are actually propagated through CFGs)
+  - [ ] Useless constant assignments can be deleted after propagation?
+  - 

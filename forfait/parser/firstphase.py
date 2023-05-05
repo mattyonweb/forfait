@@ -8,7 +8,7 @@ from forfait.ztypes.ztypes import ZTBase, ZType
 from forfait.astnodes import AstNode, Funcall, Funcdef, Sequence, Quote, Number, Boolean
 
 import logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s]:%(message)s")
 
 
 
@@ -44,11 +44,14 @@ class FirstPhase:
         :returns the same astnodes, annotated with the final types
         """
         for n in program:
+            logging.debug(f"Started typechecking astnode: {n}")
+
             n.typecheck(self.ctx)
             expr_type = n.typeof(self.ctx)
             if self.verbose:
                 print(expr_type)
-            # self.ctx.clear_generic_subs() # TODO: sbagliato?
+
+            logging.debug(f"Ended typechecking of {n}")
 
         # concludes typechecking, by adjusting the arity of each inferred function
         # this is a hack: each Funcall is assigned the type of consecutive applications
@@ -56,7 +59,17 @@ class FirstPhase:
         # from each function
         self.ctx.finalize_funcall_types()
 
+        # funcalls inside Quotes reach this point while (possibly) being still generic.
+        # remedy
+        self.annotate_types_in_quotes(program)
+
+        self.ctx.clear_generic_subs()
+
         return program
+
+
+    def annotate_types_in_quotes(self, program: list[AstNode]):
+        [astnode.finally_annotate_quotes(self.ctx) for astnode in program]
 
     ##################################################
 
@@ -118,7 +131,7 @@ class FirstPhase:
 
     def parse_funcall(self, funcname: str) -> Funcall:
         if funcname in self.ctx.builtin_types:
-            return Funcall(funcname, self.ctx.get_builtin_type(funcname))
+            return Funcall(funcname, self.ctx.fresh_builtin_type(funcname))
         if funcname in self.ctx.user_types:
             return Funcall(funcname, self.ctx.get_userdefined_type(funcname))
         if funcname in ["true", "false"]:

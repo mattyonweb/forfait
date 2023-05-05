@@ -1,10 +1,10 @@
-import copy
 from abc import abstractmethod
 from enum import Enum
 from typing import *
 
 import logging as log
 
+from forfait.dev_configs import DEBUG_ZTROWGENERIC
 from forfait.my_exceptions import ZException
 
 class ZTypeError(ZException):
@@ -40,6 +40,31 @@ class ZType:
         """
         pass
 
+    @abstractmethod
+    def eq(self, ctx: "Context", other: "ZType") -> bool:
+        """
+        Type equality depending on a Context.
+        This way we can check e.g. u8 =?= T iff, in ctx, T ~~> u8.
+
+        NB for developer: in case the equality is between any type T and generic G, invoke
+        eq with the generic G on the LHS.
+
+        :param ctx:
+        :param other:
+        :return:
+        """
+        return False
+
+    @abstractmethod
+    def structural_eq(self, other: "ZType") -> bool:
+        """
+        Type equality depending only on the structure of the type.
+
+        :param other:
+        :return:
+        """
+        return False
+
 ##################################################
 
 class ZTBase(ZType, Enum):
@@ -58,8 +83,22 @@ class ZTBase(ZType, Enum):
         if self.value != other.value:
             raise UnificationError(self, other, ctx)
 
+
+    def eq(self, ctx: "Context", other: "ZType"):
+        if isinstance(other, ZTGeneric):
+            return other.eq(ctx, self)
+        return self.structural_eq(other)
+
+
+    def structural_eq(self, other: "ZType") -> bool:
+        if isinstance(other, ZTBase):
+            return self.value == other.value
+        return False
+
+
     def __str__(self):
         return self.name
+
 
 ##################################################
 
@@ -83,6 +122,7 @@ class ZTComposite(ZType):
 
             for l, r in zip(self.inner_types, other.inner_types):
                 l.unify(r, ctx)
+
             return
 
         raise UnificationError(self, other, "Can't unify a composite type with non-generic non-composite type")
@@ -92,7 +132,7 @@ class ZTComposite(ZType):
         """
         Exchanges any generic type contained within self (if any) with a concrete type instances
         """
-        self.inner_types = [new if gen == t else t for t in self.inner_types]
+        self.inner_types = [new if gen.structural_eq(t) else t for t in self.inner_types]
         return self
 
 
@@ -103,6 +143,22 @@ class ZTComposite(ZType):
         for t in self.inner_types:
             if isinstance(t, ZTGeneric):
                 s.add(t)
+
+    def eq(self, ctx: "Context", other: "ZType"):
+        if isinstance(other, ZTGeneric):
+            return other.eq(ctx, self)
+        if isinstance(other, ZTComposite):
+            return self.typename == other.typename and (
+                all(t1.eq(ctx, t2) for t1,t2 in zip(self.inner_types, other.inner_types))
+            )
+        return False
+
+    def structural_eq(self, other: "ZType") -> bool:
+        if isinstance(other, ZTComposite):
+            return self.typename == other.typename and (
+                all(t1.structural_eq(t2) for t1, t2 in zip(self.inner_types, other.inner_types))
+            )
+        return False
 
     def __str__(self):
         return f"{self.typename}<{' '.join(str(t) for t in self.inner_types).strip()}>"
@@ -129,18 +185,34 @@ class ZTGeneric(ZType):
     def find_generics_inside(self, s: Set["ZTGeneric"]):
         s.add(self)
 
+    def eq(self, ctx: "Context", other: "ZType"):
+        if isinstance(other, ZTGeneric):
+            if self.counter == other.counter: # trivial equality
+                return True
+
+            if ctx.a_sub_for_generic_already_exists(other): # `other` has a matching
+                if ctx.rhs_of_sub(other).eq(self):
+                    return True
+
+        if ctx.a_sub_for_generic_already_exists(self):  # `self` has a matching
+            if ctx.rhs_of_sub(self).eq(other):
+                return True
+
+        return False
+
+    def structural_eq(self, other: "ZType") -> bool:
+        if isinstance(other, ZTGeneric):
+            return self.counter == other.counter
+        return False
+
     def __str__(self):
         return f"'{self.human_name}"
 
 ##################################################
-DEBUG_ZTROWGENERIC = False
-class ZTRowGeneric(ZTGeneric):
-    counter = 0
 
+class ZTRowGeneric(ZTGeneric):
     def __init__(self, human_name: str):
-        self.human_name = human_name
-        self.counter = ZTRowGeneric.counter
-        ZTRowGeneric.counter += 1
+        super().__init__(human_name)
 
     def unify(self, other: ZType, ctx: "Context"):
         log.debug(f"New unify equality: {self} =?= {other}")
@@ -148,6 +220,12 @@ class ZTRowGeneric(ZTGeneric):
 
     def find_generics_inside(self, s: Set["ZTGeneric"]):
         s.add(self)
+
+    def eq(self, ctx: "Context", other: "ZType"):
+        return super().eq(ctx, other)
+
+    def structural_eq(self, other: "ZType") -> bool:
+        return super().structural_eq(other)
 
     def __str__(self):
         if DEBUG_ZTROWGENERIC:
@@ -169,6 +247,9 @@ class ZTRow(ZType):
             self.types = []
         else:
             self.types = self.types[-n:]
+
+    def get_the_topmost(self, n: int) -> ZType:
+        return self.types[-n-1]
 
     def unify(self, other: "ZType", ctx: "Context"):
         if isinstance(other, ZTGeneric):
@@ -193,10 +274,10 @@ class ZTRow(ZType):
 
     def substitute_generic(self, gen: "ZTGeneric", new: "ZType") -> "ZType":
         for i, t in enumerate(self.types):
-            if t == gen:
+            if t.structural_eq(gen):
                 self.types[i] = new
 
-        if self.row_var == gen:
+        if self.row_var.structural_eq(gen):
             if isinstance(new, ZTRow):
                 self.row_var = new.row_var
                 self.types   = new.types + self.types
@@ -206,9 +287,35 @@ class ZTRow(ZType):
                 print("oh no")
                 breakpoint()
 
-
         return self
-    
+
+
+    def eq(self, ctx: "Context", other: "ZType") -> bool:
+        if isinstance(other, ZTGeneric):
+            return other.eq(ctx, self)
+
+        if isinstance(other, ZTRow):
+            if len(self.types) != len(other.types):
+                return False
+
+            return self.row_var.eq(ctx, other.row_var) and (
+                all(t1.eq(ctx, t2) for t1,t2 in zip(self.types, other.types))
+            )
+
+        return False
+
+
+    def structural_eq(self, other: "ZType") -> bool:
+        if isinstance(other, ZTRow):
+            if len(self.types) != len(other.types):
+                return False
+
+            return self.row_var.structural_eq(other.row_var) and (
+                all(t1.structural_eq(t2) for t1, t2 in zip(self.types, other.types))
+            )
+        return False
+
+
     def __str__(self):
         return (str(self.row_var).strip() + " " + " ".join([str(t) for t in self.types]).strip()).strip()
 
@@ -271,47 +378,63 @@ class ZTFunction(ZType):
 
         
     def find_generics_inside(self, s: Set["ZTGeneric"]):
-        for l in self.left.types:
-            l.find_generics_inside(s)
-        for r in self.right.types:
-            r.find_generics_inside(s)
+        self.left.find_generics_inside(s)
+        self.right.find_generics_inside(s)
 
 
-    def substitute_generic(self, generic: ZTGeneric, t: ZType):
+    def substitute_generic(self, generic: ZTGeneric, new: ZType):
         # Recursively visit left and right, looking for generics
         for i, l in enumerate(self.left.types):
-            if l == generic:
-                self.left.types[i] = t
+            if l.structural_eq(generic):
+                self.left.types[i] = new
             else:
-                self.left.types[i] = self.left.types[i].substitute_generic(generic, t)
+                self.left.types[i] = self.left.types[i].substitute_generic(generic, new)
 
         for i, r in enumerate(self.right.types):
-            if r == generic:
-                self.right.types[i] = t
+            if r.structural_eq(generic):
+                self.right.types[i] = new
             else:
-                self.right.types[i] = self.right.types[i].substitute_generic(generic, t)
+                self.right.types[i] = self.right.types[i].substitute_generic(generic, new)
 
-        if self.left.row_var == generic:
-            if isinstance(t, ZTRow):
-                self.left.row_var = t.row_var
-                self.left.types = t.types + self.left.types
-            elif isinstance(t, ZTRowGeneric):
-                self.left.row_var = t
+        if self.left.row_var.structural_eq(generic):
+            if isinstance(new, ZTRow):
+                self.left.row_var = new.row_var
+                self.left.types = new.types + self.left.types
+            elif isinstance(new, ZTRowGeneric):
+                self.left.row_var = new
             else:
                 print("Non so cosa vuol dire questo")
                 breakpoint()
 
-        if self.right.row_var == generic:
-            if isinstance(t, ZTRow):
-                self.right.row_var = t.row_var
-                self.right.types = t.types + self.right.types
-            elif isinstance(t, ZTRowGeneric):
-                self.right.row_var = t
+        if self.right.row_var.structural_eq(generic):
+            if isinstance(new, ZTRow):
+                self.right.row_var = new.row_var
+                self.right.types = new.types + self.right.types
+            elif isinstance(new, ZTRowGeneric):
+                self.right.row_var = new
             else:
                 print("Non so cosa vuol dire questo")
                 breakpoint()
 
         return self
+
+    def eq(self, ctx: "Context", other: "ZType") -> bool:
+        if isinstance(other, ZTGeneric):
+            return other.eq(ctx, self)
+
+        # TODO: probable bug? two function types may have different lengths, but by "expanding"
+        #  the generic stack typevar and checking inside the context the types may be equals!
+        if isinstance(other, ZTFunction):
+            return self.left.eq(ctx, other.left) and self.right.eq(ctx, other.right)
+
+        return False
+
+
+    def structural_eq(self, other: "ZType") -> bool:
+        if isinstance(other, ZTFunction):
+            return self.left.structural_eq(other.left) and self.right.structural_eq(other.right)
+        return False
+
 
     def __str__(self):
         return f"({self.left} -> {self.right})"
@@ -330,14 +453,13 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
     assert isinstance(t1, ZTFunction)  # assumi che il primo elemento di ogni lista sia un TRowGeneric
     assert isinstance(t2, ZTFunction)
 
-    # ctx.clear_generic_subs()
-
     ll, lr = t1.left, t1.right
     rl, rr = t2.left, t2.right
 
     if lr.arity() > rl.arity():
         common_seq_len = rl.arity()
-        for tl, tr in zip(takelasts(lr.types, common_seq_len), rl.types):
+        common_seq     = takelasts(lr.types, common_seq_len)
+        for tl, tr in zip(common_seq, rl.types):
             tl.unify(tr, ctx)
 
         # unifico la stack variable con il resto della lista di tipi
@@ -346,12 +468,12 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
             ctx
         )
 
-        # candidate = ZTFunction(copy.deepcopy(ll), copy.deepcopy(rr))
         candidate = ZTFunction(ll, rr)
 
     elif lr.arity() < rl.arity():
         common_seq_len = lr.arity()
-        for tl, tr in zip(lr.types, takelasts(rl.types, common_seq_len)):
+        common_seq     = takelasts(rl.types, common_seq_len)
+        for tl, tr in zip(lr.types, common_seq):
             tl.unify(tr, ctx)
 
         # unifico la stack variable con il resto della lista di tipi
@@ -360,31 +482,29 @@ def type_of_application_rowpoly(t1: ZTFunction, t2: ZTFunction, ctx: "Context") 
             ctx
         )
 
-        # candidate = ZTFunction(copy.deepcopy(ll), copy.deepcopy(rr))
         candidate = ZTFunction(ll, rr)
 
     else:
         for tl, tr in zip(lr.types, rl.types):
             tl.unify(tr, ctx)
         lr.row_var.unify(rl.row_var, ctx)
-        # candidate = ZTFunction(copy.deepcopy(ll), copy.deepcopy(rr))
         candidate = ZTFunction(ll, rr)
 
 
     # performs ordered rewriting of `Generic`s in an order given by the dependency graph
     subs, order = ctx.ordered_subs()
-    for k in order:
-        if k not in subs:  # HACK: TODO: da ripensare eh
+    for lhs in order:
+        if lhs.counter not in subs:  # HACK: TODO: da ripensare eh
             continue
-        candidate.substitute_generic(k, subs[k])
+        candidate.substitute_generic(lhs, subs[lhs.counter])
 
         ## these are so that intermediate functions with generic types assume a concrete value whenever possible
         ## NB: not so sure this makes sense
-        if not isinstance(k, ZTRowGeneric):
-            ll.substitute_generic(k, subs[k])
-            lr.substitute_generic(k, subs[k])
-            rl.substitute_generic(k, subs[k])
-            rr.substitute_generic(k, subs[k])
+        if not isinstance(lhs, ZTRowGeneric):
+            ll.substitute_generic(lhs, subs[lhs.counter])
+            lr.substitute_generic(lhs, subs[lhs.counter])
+            rl.substitute_generic(lhs, subs[lhs.counter])
+            rr.substitute_generic(lhs, subs[lhs.counter])
 
 
     return candidate
