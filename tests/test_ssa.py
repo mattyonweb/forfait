@@ -24,5 +24,5 @@ class TestSSA(TestCase):
         print(cfg.emit_program())
 
     def test_ssa_ification2_5(self):
-        cfg = self.runtest("[| dup dup +u8 +u8 |] test")
+        cfg = self.runtest("5 true [| [| dup dup +u8 +u8 |] eval |] [| 1 +u8 |] if dup")
         print(cfg.emit_program())

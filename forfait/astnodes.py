@@ -119,17 +119,7 @@ class Quote(Funcall):
         for func in self.body.funcs:
             func.finally_annotate_quotes(ctx)
 
-        subs, order = ctx.ordered_subs()
-        for lhs in order:
-            if lhs.counter not in subs:  # HACK: TODO: da ripensare eh
-                continue
-
-            for func in self.body.funcs:
-                func.type.substitute_generic(lhs, subs[lhs.counter])
-
-        for func in self.body.funcs:
-            func.type.left.keep_last_n(func.arity_in)
-            func.type.right.keep_last_n(func.arity_out)
+        super().finally_annotate_quotes(ctx)
 
 
 ##################################################
@@ -193,9 +183,6 @@ class Sequence(AstNode):
     def typecheck(self, ctx: Context):
         for x in self.funcs:
             x.typecheck(ctx)
-
-            # every function encountered is saved in the ctx
-            # ctx.inner_type[x] = x.typeof(ctx)
 
 
     def typeof(self, ctx: Context) -> ZTFunction:

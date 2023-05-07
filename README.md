@@ -6,7 +6,7 @@ The goal is to write a compiler for Forfait capable of generating binaries for t
 
 ## Overview of the language
 
-The language is heavily inspired by Forth and Cat. 
+The language is heavily inspired by [Forth](https://forth-standard.org/) and [Cat](https://github.com/cdiggins/cat-language). 
 
 The syntax strives to be as minimal as possible without being too idealistic about it. 
 
@@ -23,6 +23,35 @@ An example program may be:
 ( prints the current stack (it will be empty!) )
 :s
 ```
+
+## Few examples
+
+### Fibonacci on-stack
+
+```
+: fibonacci (( n -- fact(n) ))
+  1 1
+
+    [| rot- dup 1 >=u8 |]  (( checks if n still >= 1 ))
+    [| --u8 rot+           (( decrements n and puts it in third position ))
+       over +u8 swap |]    (( fib(n-1) fib(n-2) -- fib(n) fib(n-1) ))
+  while
+
+  drop drop
+;
+
+8 fibonacci :s     (( will print [55] ))
+```
+
+## Architecture of the compiler
+
+The canonical compiler architecture is used for Forfait:
+
+- First, an input file is lexed and parsed
+- The so-generated AST is typechecked
+- _(not yet implemented)_ Few simple peephole optimizations are performed on the Forfait code
+- The AST is then converted to Single-Static Assignment form ([SSA](https://en.wikipedia.org/wiki/Static_single-assignment_form)), translating the stack-based Forfait code to a register-based Intermediate Representation (IR).
+- 
 
 ## Type system
 
@@ -77,25 +106,6 @@ eval            ::        (''U (''U    -> ''V)  -> ''V)
 [| drop |] eval :: (''S 'T -> ''S)  (names may be different IRL)
 ```
 
-## Few examples
-
-### Fibonacci
-
-```
-: fibonacci (( n -- fact(n) ))
-  1 1
-
-    [| rot- dup 1 >=u8 |]  (( checks if n still >= 1 ))
-    [| --u8 rot+           (( decrements n and puts it in third position ))
-       over +u8 swap |]    (( fib(n-1) fib(n-2) -- fib(n) fib(n-1) ))
-  while
-
-  drop drop
-;
-
-8 fibonacci :s     (( will print [55] ))
-```
-
 ## TODOs
 
 - [ ] Typing for recursive functions
@@ -106,4 +116,3 @@ eval            ::        (''U (''U    -> ''V)  -> ''V)
 - [ ] SSA
   - [ ] Test constant propagation on branching code (see if constants are actually propagated through CFGs)
   - [ ] Useless constant assignments can be deleted after propagation?
-  - 

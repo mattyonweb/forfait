@@ -125,6 +125,43 @@ class TestParser_FinalType(TestCase):
             "(''S -> ''S U8)"
         )
 
+    def test_quotes7_nested_quotes(self):
+        self.parse_simple_sequence(
+            "[| 1 [| 7 |] 3 5 |]",
+            "(''NQ -> ''NQ (''S -> ''S U8 (''S -> ''S U8) U8 U8))"
+        )
+
+    def test_quotes8_nested_quotes(self):
+        self.parse_simple_sequence(
+            "100 [| dup [| +u8 |] eval |] eval",
+            "(''S -> ''S U8)"
+        )
+
+    def test_quotes8_singular_types(self):
+        sequence = self.parse_simple_sequence_and_get_first_ast(
+            "100 [| dup [| +u8 |] eval |] eval"
+        )
+        quote = sequence.funcs[1]
+        assert isinstance(quote, Quote)
+        self.assertEqual(str(quote.body.funcs[0].type), "(''S U8 -> ''S U8 U8)")
+
+
+    def test_quotes9_nested_quotes(self):
+        self.parse_simple_sequence(
+            "5 true [| [| dup dup +u8 +u8 |] eval |] [| ++u8 |] if dup",
+            "(''S -> ''S U8 U8)"
+        )
+
+    def test_quotes9_singular_types(self):
+        sequence = self.parse_simple_sequence_and_get_first_ast(
+            "5 true [| [| dup dup +u8 +u8 |] eval |] [| ++u8 |] if dup"
+        )
+        quote = sequence.funcs[2]
+        assert isinstance(quote, Quote)
+        self.assertEqual(str(quote.body.funcs[0].type), "(''S -> ''S (''S U8 -> ''S U8))")
+        self.assertEqual(str(quote.type), "(''S -> ''S (''S U8 -> ''S U8))")
+
+
     # def test_recursive(self):
     #     self.typeof_funcdef(
     #         ": foo 1 +u8 foo ;" ,

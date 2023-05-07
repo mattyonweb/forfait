@@ -16,6 +16,14 @@ class Register:
     def __str__(self):
         return f"R{self.i} :: {self.type}"
 
+class RegisterQuote(Register):
+    def __init__(self, t: ZType, quote: Quote):
+        super().__init__(t)
+        self.quote = quote
+
+    def __str__(self):
+        return f"R{self.i} :: {self.type} := {self.quote}"
+
 
 class Phi(Register):
     def __init__(self, t: ZType, r1: Register, r2: Register):
@@ -56,12 +64,12 @@ class SSA_Cast(SSA_Instr):
     def __str__(self):
         return f"({self.new_reg}) <- ({self.new_type}) ({self.old_reg})"
 
-class SSA_Quote(SSA_Instr):
-    def __init__(self, reg: Register, quote: Quote):
-        self.r = reg
-        self.quote = quote
-    def __str__(self):
-        return f"({self.r}) <- ({self.quote})"
+# class SSA_Quote(SSA_Instr):
+#     def __init__(self, reg: Register, quote: Quote):
+#         self.r = reg
+#         self.quote = quote
+#     def __str__(self):
+#         return f"({self.r}) <- ({self.quote})"
 
 class SSA_Binop(SSA_Instr):
     def __init__(self, r: Register, func: Funcall, op1, op2):
@@ -111,13 +119,21 @@ class SSA_Binop(SSA_Instr):
         return Number(out, self.func.type.right.types[-1])
 
 
-class SSA_Jump(SSA_Instr):
+class SSA_Jump_Cond(SSA_Instr):
     def __init__(self, test_reg: Register, if_true_jump_to: "CFG", else_jump_to: "CFG"):
         self.test_reg = test_reg
         self.jump_to = if_true_jump_to
         self.else_jump_to = else_jump_to
     def __str__(self):
         return f"if ({self.test_reg}) goto {self.jump_to.human_friendly_name()}; else goto {self.else_jump_to.human_friendly_name()}"
+
+class SSA_Jump_Uncond(SSA_Instr):
+    def __init__(self, jump_to: "CFG"):
+        self.jump_to = jump_to
+
+    def __str__(self):
+        return f"goto {self.jump_to.human_friendly_name()}"
+
 
 ##############################################
 
@@ -242,17 +258,24 @@ def SSA_ification(astnode: Sequence, start_vstack:VStack=None) -> tuple[CFG, VSt
     for funcall in astnode.funcs:
 
         # a Number is converted to a simple constant assignment to a newly-created register
-        if isinstance(funcall, Number):
+        if isinstance(funcall, Number | Boolean):
             reg = Register(funcall.typeof(None).right.types[-1])
 
             program.append( SSA_Constant(reg, funcall) )
             vstack.append( reg )
+        #
+        # if isinstance(funcall, Boolean):
+        #     reg = Register(funcall.typeof(None).right.types[-1])
+        #
+        #     program.append( SSA_Constant(reg, funcall) )
+        #     vstack.append( reg )
+
 
         # a Quote is stored unchanged for future uses
         elif isinstance(funcall, Quote):
-            reg = Register(funcall.type)
+            reg = RegisterQuote(funcall.type, funcall)
 
-            program.append(SSA_Quote(reg, funcall))
+            # program.append(SSA_Quote(reg, funcall))
             vstack.append(reg)
 
 
@@ -296,14 +319,16 @@ def SSA_ification(astnode: Sequence, start_vstack:VStack=None) -> tuple[CFG, VSt
 
                 case "if":
                     # extract `else` quotation
-                    _else_reg = vstack.pop()
-                    else_ssa_instr = program.pop()
-                    assert isinstance(else_ssa_instr, SSA_Quote)
+                    else_reg = vstack.pop()
+                    # else_ssa_instr = program.pop()
+                    # assert isinstance(else_ssa_instr, SSA_Quote)
+                    assert isinstance(else_reg, RegisterQuote)
 
                     # extract `then` quotation
-                    _then_reg = vstack.pop()
-                    then_ssa_instr = program.pop()
-                    assert isinstance(then_ssa_instr, SSA_Quote)
+                    then_reg = vstack.pop()
+                    # then_ssa_instr = program.pop()
+                    # assert isinstance(then_ssa_instr, SSA_Quote)
+                    assert isinstance(then_reg, RegisterQuote)
 
                     # register containing boolean value
                     cond_reg = vstack.pop()
@@ -311,11 +336,11 @@ def SSA_ification(astnode: Sequence, start_vstack:VStack=None) -> tuple[CFG, VSt
 
                     # visit `then` and `else` quotations; for each, build instructions and vstack
                     import copy
-                    then_cfg, then_vstack = SSA_ification(then_ssa_instr.quote.body, copy.copy(vstack))
-                    else_cfg, else_vstack = SSA_ification(else_ssa_instr.quote.body, copy.copy(vstack))
+                    then_cfg, then_vstack = SSA_ification(then_reg.quote.body, copy.copy(vstack))
+                    else_cfg, else_vstack = SSA_ification(else_reg.quote.body, copy.copy(vstack))
 
                     # add, as last instruction to current CFG, the jump SSA instruction
-                    program.append(SSA_Jump(cond_reg, then_cfg, else_cfg))
+                    program.append(SSA_Jump_Cond(cond_reg, then_cfg, else_cfg))
 
                     curr_cfg.add_exiting_cfg(then_cfg)
                     curr_cfg.add_exiting_cfg(else_cfg)
@@ -352,6 +377,33 @@ def SSA_ification(astnode: Sequence, start_vstack:VStack=None) -> tuple[CFG, VSt
                             # vstack.append(Phi(then_candidate_type, r1, r2))
                             assert r1.type == r2.type, f"{r1}, {r2}"
                         vstack.append(Phi(r1.type, r1, r2))
+
+                case "eval":
+                    import copy
+
+                    # contains astnode for Quote
+                    quote_reg = vstack.pop()
+                    assert isinstance(quote_reg, RegisterQuote)
+
+                    # evaluates a new cfg for inside of quote
+                    quote_body_cfg, new_vstack = SSA_ification(quote_reg.quote.body, copy.copy(vstack))
+
+                    # end current block
+                    curr_cfg.instructions += program
+                    curr_cfg.final_vstack = vstack
+                    program = list()
+                    vstack  = new_vstack
+
+                    # link current block to new unquotation block
+                    curr_cfg.add_exiting_cfg(quote_body_cfg)
+                    quote_body_cfg.add_entering_cfg(curr_cfg)
+
+                    # new block
+                    curr_cfg = CFG()
+                    curr_cfg.add_entering_cfg(quote_body_cfg)
+                    quote_body_cfg.add_exiting_cfg(curr_cfg)
+
+
                 case _:
                     if funcall.funcname in ["+u8", "-u8", "*u8", "/u8", "+u16", "-u16", "*u16", "/u16",
                                             "<u8", "<=u8", ">u8", ">=u8", "<u16", "<=u16", ">u16", ">=u16"]:

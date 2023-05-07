@@ -219,9 +219,6 @@ class Context:
         for key, value in self.generic_subs_items():
             __old_sub_only_for_debug = copy.deepcopy(value)
 
-            if key.counter in [64, 68]:
-                print("lol")
-
             # update old sub
             self._store_new_sub(
                 key,
